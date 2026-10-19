@@ -9,6 +9,7 @@ from collections.abc import Sequence
 from dataclasses import replace
 from pathlib import Path
 
+from gridfinity import collection
 from gridfinity.baseplate import build_baseplate
 from gridfinity.box import build_box
 from gridfinity.clip import build_clip
@@ -37,6 +38,8 @@ DESIGNS = (".solidcraft", ".json")
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = parser().parse_args(argv)
+    if args.kind == "collection":
+        return run_collection(args)
     try:
         kind, config = configure(args)
         if args.print_config:
@@ -94,6 +97,22 @@ def parser() -> argparse.ArgumentParser:
     plate.add_argument(
         "--size", type=float, nargs=2, metavar=("X", "Y"), help="trim to this size, mm"
     )
+
+    group = parts.add_parser("collection", help="several parts laid out on one grid")
+    group.add_argument("--config", type=Path, required=True, help="JSON file of the collection")
+    group.add_argument(
+        "--folder", type=Path, help="where each part's design goes (default: beside the config)"
+    )
+    group.add_argument(
+        "--export",
+        choices=["stl", "step", "3mf"],
+        action="append",
+        default=[],
+        help="also export every part in this format (repeatable)",
+    )
+    group.add_argument("--out", type=Path, help="save the collection design here")
+    group.add_argument("--live", action="store_true", help="assemble it in the running app")
+    group.add_argument("--port", type=int, default=DEFAULT_PORT, help="the app's control port")
 
     clip = parts.add_parser("clip", help="a clip joining two connectable baseplates")
     _common(clip)
@@ -275,3 +294,48 @@ def _report(
         print(f"warning: {problem}")
     for path in outputs:
         print(f"wrote {path}")
+
+
+def run_collection(args: argparse.Namespace) -> int:
+    """Build every part of a collection into its folder, then assemble the collection."""
+    try:
+        config = collection.read(args.config)
+        config.validate()
+    except ConfigError as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 2
+    placements, problems = collection.place(config)
+    for problem in problems:
+        print(f"warning: {problem}")
+    folder = args.folder or args.config.with_suffix("")
+    folder.mkdir(parents=True, exist_ok=True)
+    designs: dict[str, Path] = {}
+    built: dict[str, Path] = {}
+    try:
+        for item in config.items:
+            # Items with the same settings share one design
+            key = write(item.part, item.kind)
+            if key not in built:
+                path = folder / f"{item.name}.solidcraft"
+                exports = [folder / f"{item.name}.{ext}" for ext in args.export]
+                print(f"{item.name}:")
+                build_headless(build(item.kind, item.part), [path, *exports])
+                built[key] = path.resolve()
+            designs[item.name] = built[key]
+        script = collection.assemble(placements, designs)
+        out = args.out or folder / f"{args.config.stem}.solidcraft"
+        if args.live:
+            with ControlClient(args.port) as app:
+                app.request("ui.documents", {"action": "new"})
+                app.execute("file.new", {"name": args.config.stem})
+                # Steps that load a file cannot run inside a batch
+                for step in script.commands:
+                    app.execute(step["command"], step["params"])
+                app.execute("file.save", {"path": str(out.resolve())})
+        else:
+            run(script.commands, save=out)
+    except (SolidCraftError, OSError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
+    print(f"wrote {out}")
+    return 0

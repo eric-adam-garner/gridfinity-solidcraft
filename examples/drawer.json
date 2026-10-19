@@ -1,0 +1,24 @@
+{
+  "kind": "collection",
+  "unit_size": 42,
+  "bounds": [300, 300, 60],
+  "items": [
+    {"name": "plate", "x": 0, "y": 0,
+     "part": {"kind": "baseplate", "grid": {"units_x": 7, "units_y": 7}}},
+    {"name": "tools", "x": 0, "y": 0,
+     "part": {"kind": "box", "grid": {"units_x": 3, "units_y": 2}, "units_z": 6,
+              "holes": {"magnets": "corner"},
+              "elements": [
+                {"kind": "wall", "x": 12, "y": 0, "length": 24, "orientation": "y"},
+                {"kind": "wall", "x": 24, "y": 0, "length": 24, "orientation": "y"},
+                {"kind": "scoop", "x": 0, "y": 0, "length": 36},
+                {"kind": "ledge", "x": 0, "y": 24, "length": 36, "flip": true}]}},
+    {"name": "parts", "x": 3, "y": 0, "rotation": 90,
+     "part": {"kind": "box", "grid": {"units_x": 2, "units_y": 1}, "units_z": 3,
+              "elements": [{"kind": "scoop", "x": 0, "y": 0, "length": 24}]}},
+    {"name": "bits-1", "x": 4, "y": 0,
+     "part": {"kind": "box", "grid": {"units_x": 1, "units_y": 1}, "units_z": 3, "lip": "thin"}},
+    {"name": "bits-2", "x": 4, "y": 1,
+     "part": {"kind": "box", "grid": {"units_x": 1, "units_y": 1}, "units_z": 3, "lip": "thin"}}
+  ]
+}
