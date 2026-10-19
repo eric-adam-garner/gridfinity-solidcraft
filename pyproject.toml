@@ -1,0 +1,36 @@
+[project]
+name = "gridfinity-solidcraft"
+version = "0.1.0"
+description = "Parametric Gridfinity bins, baseplates and clips built in SolidCraft"
+readme = "README.md"
+authors = [
+    { name = "Eric Garner", email = "eric.adam.garner@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+gridfinity = "gridfinity.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.13.1,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = ["gridfinity", "solidcraft_script"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["solidcraft: builds parts with solidcraft-cli (slow)"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.17.1",
+]
