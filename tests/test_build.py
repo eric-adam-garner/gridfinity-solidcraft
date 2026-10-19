@@ -105,9 +105,10 @@ def test_interior_scoop_adds_its_cove() -> None:
 
 def scoop_volume() -> float:
     """A scoop on the middle line of a 2x1x3 bin, worked out from the web generator's drawing:
-    a back 0.4 thick (half an inner wall) up to z 20.8, and a cove from 15 mm out on the floor
-    line z 5.95 up to 13.9 mm high on the back, bulging 0.4 half-chords toward the corner."""
-    back, base, top = 0.4, 5.95, 20.8
+    a back 0.4 thick (half an inner wall) up to z 20.8, and a cove from 15 mm out up to 13.9 mm
+    high on the back, bulging 0.4 half-chords toward the corner. The cove starts 0.05 above the
+    floor (z 5.96), on a strip as wide as the scoop."""
+    back, base, top = 0.4, 6.01, 20.8
     foot, head = (back + 15, 0.0), (back, 13.9)
     chord = math.dist(foot, head)
     sagitta = 0.4 * chord / 2
@@ -119,6 +120,8 @@ def scoop_volume() -> float:
     def width(z: float) -> float:
         """How far out from the line the scoop reaches at height z."""
         v = z - base
+        if v < 0:
+            return foot[0]
         if v >= head[1]:
             return back
         # The cove surface: the circle's lower-left part, between foot and head
@@ -134,6 +137,44 @@ def scoop_volume() -> float:
     dz = (top - floor) / steps
     heights = (floor + (k + 0.5) * dz for k in range(steps))
     return sum(width(z) * span(z) * dz for z in heights)
+
+
+def test_edge_ledge_reaches_into_the_corners() -> None:
+    config = BoxConfig(
+        grid=Grid(3, 2), units_z=6, elements=(Element(ElementKind.LEDGE, 0, 24, 36, flip=True),)
+    )
+    # Running into the rounded corners makes the join retry, which has gone wrong before
+    body = single(build_box(config).commands, retries=1)
+    assert body.volume == pytest.approx(bin_volume(3, 2, 6) + edge_ledge_volume(), rel=EXACT)
+
+
+def edge_ledge_volume() -> float:
+    """What a full-length 15 mm ledge on the back edge of a 3x2x6 bin adds inside it: the
+    part of the triangle (top at z 42, sloping 45 degrees down to the outer face at z 27) that
+    lies in the cavity, whose rounded corners shrink with the lip's inset."""
+    width = 3 * 42 - 0.62
+
+    def inset(z: float) -> float:
+        return 1.2 if z <= 39.295 else min(2.95, 1.2 + (z - 39.295))
+
+    def added(z: float) -> float:
+        i, reach = inset(z), z - 27.0
+        if reach <= i:
+            return 0.0
+        corner = 3.75 - i
+        depth = reach - i
+        t = min(depth, corner)
+        # Each back corner of the cavity leaves out what lies outside its arc
+        n = 400
+        gap = sum(
+            (corner - math.sqrt(corner**2 - (corner - (k + 0.5) * t / n) ** 2)) * t / n
+            for k in range(n)
+        )
+        return (width - 2 * i) * depth - 2 * gap
+
+    steps = 3000
+    dz = 15.0 / steps
+    return sum(added(27.0 + (k + 0.5) * dz) * dz for k in range(steps))
 
 
 @pytest.mark.parametrize(("units", "lift"), [((1, 1), 0.0), ((3, 2), 0.0)])

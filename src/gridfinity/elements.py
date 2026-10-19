@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from gridfinity.config import BoxConfig, Element, ElementKind, LipStyle, Orientation
-from solidcraft_script.loops import Arc, Line, Point2, Segment
+from solidcraft_script.loops import Arc, Line, Point2, RoundedRect, Segment
 from solidcraft_script.script import Plane, Script
 
 if TYPE_CHECKING:
@@ -27,6 +27,9 @@ SCOOP_CLEARANCE = 0.05
 THIN_LIP_SCOOP_RISE = 1.2
 SCOOP_TOP_GAP = 0.2
 SCOOP_BASE = 0.2
+# A scoop's curve starts this far above the floor: meeting the floor almost tangentially, as
+# a curve that starts on it does, makes the join slow and inexact
+SCOOP_LIFT = 0.05
 SHORT_BULGE_REDUCTION = 0.05
 
 
@@ -60,22 +63,27 @@ def add_elements(script: Script, config: BoxConfig, shape: BinShape, body: str) 
             body_name=name,
         )
         names.append(name)
-    first = names[0]
-    if len(names) > 1:
-        script.add("solid.combine", target=first, tools=names[1:], operation="join")
+    # Trim every element back to the middle of the outer wall, which also rounds the ends that
+    # run into the bin's corners, then join them all to the bin
     trim = shape.outline.inset(shape.wall / 2)
+    x0, y0, x1, y1 = shape.outline.bounds
+    margin = OVERHANG + 1
+    outside = RoundedRect(shape.outline.center, x1 - x0 + 2 * margin, y1 - y0 + 2 * margin, 0.0)
     with script.sketch("ElementTrimSection", Plane.horizontal(shape.floor - SINK - 1)) as sketch:
+        sketch.rectangle(outside)
         sketch.rounded_rectangle(trim)
     script.add(
         "solid.extrude",
         sketch="ElementTrimSection",
+        profiles=[{"point": [x0 - margin / 2, shape.outline.center[1]]}],
         distance=shape.height - shape.floor + SINK + 2,
-        operation="new",
+        operation="cut",
+        targets=names,
         name="ElementTrim",
-        body_name="ElementTrim",
     )
-    script.add("solid.combine", target="ElementTrim", tools=[first], operation="intersect")
-    script.add("solid.combine", target=body, tools=["ElementTrim"], operation="join")
+    script.add("solid.combine", target=body, tools=names, operation="join")
+    sketches = [f"{n}Section" for n in names]
+    script.group("Elements", [*sketches, *names, "ElementTrimSection", "ElementTrim"])
 
 
 def placement(config: BoxConfig, element: Element) -> Placement:
@@ -149,7 +157,7 @@ def section(
     else:
         back = config.inner_wall / 2
         rise = 0.0
-    base = std.element_base
+    base = shape.floor + SCOOP_LIFT
     height = std.scoop_height_short if short else std.scoop_height
     bulge = config.scoop_shape - (SHORT_BULGE_REDUCTION if short else 0.0)
     foot = at(back + std.scoop_width, base)

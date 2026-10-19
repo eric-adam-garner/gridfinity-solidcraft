@@ -239,6 +239,8 @@ def build_headless(script: Script, outputs: Sequence[Path]) -> None:
 def build_live(script: Script, port: int, name: str, outputs: Sequence[Path]) -> None:
     started = time.monotonic()
     with ControlClient(port) as app:
+        # A new tab leaves whatever is open in the app untouched
+        app.request("ui.documents", {"action": "new"})
         app.execute("file.new", {"name": name})
         app.batch(script.commands)
         for path in outputs:
