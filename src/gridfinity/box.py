@@ -6,7 +6,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from itertools import pairwise
 
-from gridfinity.base import add_feet, outline
+from gridfinity.base import Footprint, add_feet
 from gridfinity.config import BoxConfig, LipStyle
 from gridfinity.elements import add_elements
 from gridfinity.profiles import inner_surface
@@ -51,7 +51,7 @@ class BinShape:
             )
             surface = [*apex, *surface[1:]]
         return BinShape(
-            outline=outline(config.grid, std),
+            outline=footprint(config).outline,
             floor=floor,
             wall=config.outer_wall,
             nominal=nominal,
@@ -79,6 +79,10 @@ class BinShape:
         return self.wall
 
 
+def footprint(config: BoxConfig) -> Footprint:
+    return Footprint.of(config.grid, config.standard, config.size_x, config.size_y)
+
+
 def lip_profile(std: Standard, style: LipStyle) -> Profile | None:
     return {LipStyle.DEFAULT: std.lip, LipStyle.THIN: std.thin_lip, LipStyle.NONE: None}[style]
 
@@ -92,7 +96,7 @@ def build_box(
     std = config.standard
     shape = BinShape.of(config, floor)
     shell = ShellBuilder(script, BODY)
-    splits = add_feet(shell, config.grid, std, config.holes)
+    splits = add_feet(shell, footprint(config), config.grid, std, config.holes)
     split_wall(shell, shape.outline, std.foot_height, shape.rim, bottom_splits=splits)
     sections = sweep_profile(shell, [shape.outline], shape.inner, kind="Wall")
     shell.patch(sections[len(shape.inner) - 1], [shape.outline.center], kind="Floor")

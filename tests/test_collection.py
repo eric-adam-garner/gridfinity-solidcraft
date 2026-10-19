@@ -28,12 +28,12 @@ def test_parts_are_placed_from_the_bounds_corner_by_whole_cells() -> None:
     placements, problems = place(layout({"name": "a", "x": 1, "y": 2, "part": box(2, 1)}))
     assert problems == []
     # Footprint 84 x 42 starting one cell in and two cells up from the corner at (-84, -84)
-    assert placements[0].center == pytest.approx((-84 + 42 + 42, -84 + 84 + 21, 0))
+    assert placements[0].origin == pytest.approx((-84 + 42 + 42, -84 + 84 + 21, 0))
 
 
 def test_a_quarter_turn_swaps_the_footprint() -> None:
     placements, _ = place(layout({"name": "a", "x": 0, "y": 0, "rotation": 90, "part": box(2, 1)}))
-    assert placements[0].center == pytest.approx((-84 + 21, -84 + 42, 0))
+    assert placements[0].origin == pytest.approx((-84 + 21, -84 + 42, 0))
     assert (len(placements[0].cells[0]), len(placements[0].cells[1])) == (1, 2)
 
 

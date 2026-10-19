@@ -17,7 +17,6 @@ from gridfinity.config import (
     KINDS,
     UNIT_SIZE,
     BaseplateConfig,
-    BoxConfig,
     ClipConfig,
     ConfigError,
     PartConfig,
@@ -115,8 +114,8 @@ class CollectionConfig:
 @dataclass(frozen=True)
 class Placement:
     item: Item
-    # Centre of the part's footprint and the height of its underside, mm
-    center: tuple[float, float, float]
+    # Where the part's own origin goes, mm; it is turned about that point
+    origin: tuple[float, float, float]
     # Cells the part covers: x and y on the collection's grid, z in height units
     cells: tuple[range, range, range]
 
@@ -128,19 +127,34 @@ def read(path: Path) -> CollectionConfig:
     return CollectionConfig.from_json(data)
 
 
-def footprint(item: Item) -> tuple[float, float, float]:
-    """Width, depth (before rotation) and nominal height of a part, mm."""
+def footprint(item: Item) -> tuple[tuple[float, float, float, float], float]:
+    """A part's footprint in its own coordinates, as (x0, y0, x1, y1), and its nominal height;
+    a box or baseplate trimmed to a size keeps its grid's -X/-Y corner."""
     part = item.part
     if isinstance(part, ClipConfig):
-        return (part.unit_size, part.unit_size, part.unit_size)
+        half = part.unit_size / 2
+        return (-half, -half, half, half), part.unit_size
     grid = part.grid
+    x0, y0 = -grid.width / 2, -grid.depth / 2
+    width = grid.width if part.size_x is None else part.size_x
+    depth = grid.depth if part.size_y is None else part.size_y
     if isinstance(part, BaseplateConfig):
-        width = part.size_x if part.size_x is not None else grid.width
-        depth = part.size_y if part.size_y is not None else grid.depth
-        return (width, depth, BASEPLATE_UNITS * part.standard.height_unit)
-    assert isinstance(part, BoxConfig)
-    height = part.units_z * part.standard.height_unit + LIP_ALLOWANCE
-    return (grid.width, grid.depth, height)
+        height = BASEPLATE_UNITS * part.standard.height_unit
+    else:
+        height = part.units_z * part.standard.height_unit + LIP_ALLOWANCE
+    return (x0, y0, x0 + width, y0 + depth), height
+
+
+def turned(
+    bounds: tuple[float, float, float, float], degrees: int
+) -> tuple[float, float, float, float]:
+    """`bounds` turned counter-clockwise about the origin by a multiple of 90 degrees."""
+    x0, y0, x1, y1 = bounds
+    corners = [(x0, y0), (x1, y1)]
+    for _ in range(degrees // 90):
+        corners = [(-y, x) for x, y in corners]
+    xs, ys = [x for x, _ in corners], [y for _, y in corners]
+    return min(xs), min(ys), max(xs), max(ys)
 
 
 def item_unit(item: Item) -> float:
@@ -165,13 +179,14 @@ def place(config: CollectionConfig) -> tuple[list[Placement], list[str]]:
         # A part steps by its own unit where that divides the collection's
         ratio = unit / own
         step = own if abs(ratio - round(ratio)) < 1e-9 else unit
-        fx, fy, fz = footprint(item)
-        if item.rotation in (90, 270):
-            fx, fy = fy, fx
+        own_bounds, fz = footprint(item)
+        rx0, ry0, rx1, ry1 = turned(own_bounds, item.rotation)
+        fx, fy = rx1 - rx0, ry1 - ry0
         x0 = -width / 2 + item.x * step
         y0 = -depth / 2 + item.y * step
         z0 = item.z * height_unit
-        center = (x0 + fx / 2, y0 + fy / 2, z0)
+        # The turned footprint's corner lands on the item's cell
+        origin = (x0 - rx0, y0 - ry0, z0)
         cells = (
             range(
                 math.floor(item.x * step / unit + 1e-9),
@@ -191,7 +206,7 @@ def place(config: CollectionConfig) -> tuple[list[Placement], list[str]]:
             or z0 + fz > height + 1e-9
         ):
             problems.append(f"{item.name}: lies outside the collection's bounds")
-        placements.append(Placement(item, center, cells))
+        placements.append(Placement(item, origin, cells))
     problems += _overlaps(placements)
     return placements, problems
 
@@ -218,7 +233,7 @@ def assemble(
     script = script or Script()
     for placement in placements:
         item = placement.item
-        cx, cy, z = placement.center
+        cx, cy, z = placement.origin
         script.add(
             "component.insert_design",
             path=str(designs[item.name]),

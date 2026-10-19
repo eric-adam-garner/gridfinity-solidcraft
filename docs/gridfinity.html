@@ -388,10 +388,11 @@ figcaption {
             <tr><td class="name">Outer wall, inner walls</td><td><code>outer_wall</code>, <code>inner_wall</code></td><td>0.4 to 3 mm each</td><td class="value">1.2; 0.8</td></tr>
             <tr><td class="name">Scoop shape</td><td><code>scoop_shape</code></td><td>0.1, a shallow curve, to 0.4, close to a quarter circle</td><td class="value">0.4</td></tr>
             <tr><td class="name">Elements</td><td><code>elements</code></td><td>Walls, ledges and scoops, each placed as below</td><td class="value">none</td></tr>
+            <tr><td class="name">Trim to size, from the &#8722;X/&#8722;Y corner</td><td><code>size_x</code>, <code>size_y</code></td><td>From one unit less than the grid plus 1 mm up to the full grid, in mm; or unset</td><td class="value">unset</td></tr>
           </tbody>
         </table>
       </div>
-      <p>An element runs along a line of the grid divided into twelfths of a unit. Its start and its line are counted in twelfths from the bin's &#8722;X/&#8722;Y corner, and its length in twelfths. An element oriented along X starts at <code>x</code> on the line <code>y</code>; one oriented along Y swaps the two. A line on the grid's edge lies on the bin's outer face. A wall is centred on its line. A ledge is a 45 degree shelf 15 mm wide whose top is level with the walls' tops; it hangs from its line toward +Y, or +X for a Y element, and the other way when flipped. A scoop rises from the floor in a curve to its line on the same side. A bin lower than three units takes a shorter ledge and scoop. On the command line an element is written <code>X,Y,LENGTH</code>, then <code>y</code> for a Y element and <code>flip</code> to flip it, as in <code>--scoop 0,0,36</code> or <code>--wall 12,0,24,y</code>.</p>
+      <p>An element runs along a line of the grid divided into twelfths of a unit. Its start and its line are counted in twelfths from the bin's &#8722;X/&#8722;Y corner, and its length in twelfths. An element oriented along X starts at <code>x</code> on the line <code>y</code>; one oriented along Y swaps the two. A line on the grid's edge lies on the bin's outer face. A wall is centred on its line. A ledge is a 45 degree shelf 15 mm wide whose top is level with the walls' tops; it hangs from its line toward +Y, or +X for a Y element, and the other way when flipped. A scoop rises from the floor in a curve to its line on the same side. A bin lower than three units takes a shorter ledge and scoop. A bin trimmed to a size keeps the grid's &#8722;X/&#8722;Y corner; the column or row its trim cuts through stands on narrower feet of the full profile, a foot narrower than its two corners is left out and the floor overhangs there, and an element that lies wholly outside the trimmed bin stops the build. On the command line an element is written <code>X,Y,LENGTH</code>, then <code>y</code> for a Y element and <code>flip</code> to flip it, as in <code>--scoop 0,0,36</code> or <code>--wall 12,0,24,y</code>.</p>
     </article>
 
     <article class="step" id="baseplate-settings">
@@ -410,7 +411,7 @@ figcaption {
           </tbody>
         </table>
       </div>
-      <p>A collection builds whatever its layout asks for and warns, part by part, where the web generator flags a layout: a part outside the bounds, two parts claiming one cell, a part whose grid unit differs from the collection's. Baseplates contend only with baseplates, on the grid; every other part contends with every other in grid cells and height units, a box claiming its height plus 4.4 mm for its lip. Items with identical settings share one design.</p>
+      <p>A collection builds whatever its layout asks for and warns, part by part, where the web generator flags a layout: a part outside the bounds, two parts claiming one cell, a part whose grid unit differs from the collection's. Baseplates contend only with baseplates, on the grid; every other part contends with every other in grid cells and height units, a box claiming its height plus 4.4 mm for its lip. A part lands with the corner of its footprint, turned by its rotation, on its cell, so a trimmed part keeps its trimmed corner where the layout puts it. Items with identical settings share one design.</p>
     </article>
 
     <section class="stage-head" id="dimensions">
@@ -458,6 +459,7 @@ figcaption {
             <tr><td class="name">Start of a scoop's curve</td><td>Just below the floor</td><td>0.05 above the floor, with a step that high at its toe, since a curve meeting the floor almost tangentially makes the join slow and inexact</td></tr>
             <tr><td class="name">Rounding of the lip's apex</td><td>A fillet</td><td>Four flat pieces of the same arc</td></tr>
             <tr><td class="name">Ends of walls, ledges and scoops</td><td>Run to the outer face and rounded into the corners; a wall on an edge line stands half outside the bin</td><td>Trimmed to the middle of the outer wall, which rounds them into the corners and keeps every element inside</td></tr>
+            <tr><td class="name">Feet under a trimmed bin</td><td>Whole feet cut flat along the trim</td><td>Narrower feet of the full profile in the cut column or row, since a flat-cut foot cannot be sewn into the shell; none where too little is left</td></tr>
             <tr><td class="name">Elements' undersides</td><td>0.01 into the floor</td><td>0.5 into the floor, where nothing shows</td></tr>
           </tbody>
         </table>
@@ -535,17 +537,16 @@ figcaption {
 
     <section class="stage-head" id="out-of-scope">
       <p class="eyebrow">Left out</p>
-      <h2>Cutouts, trimmed bins and the web generator's account features are not built</h2>
+      <h2>Cutouts and the web generator's account features are not built</h2>
       <ul>
         <li>Cutouts. SolidCraft runs no boolean on an imported mesh, and an STL subtracted exactly needs a mesh boolean outside it; the first open question decides it.</li>
-        <li>Bins trimmed to a size. The web generator cuts the feet flat along the trim, which the stitched shell cannot sew; the second open question decides how a trimmed bin's feet are shaped.</li>
         <li>GLB export, the build-plate preview, measurements in inches, and saved models, accounts and the model library.</li>
       </ul>
     </section>
 
     <section class="stage-head" id="questions">
       <p class="eyebrow">Re-plan triggers</p>
-      <h2>Three questions change what gets built: cutouts, trimmed bins and the gap between bins</h2>
+      <h2>Three questions change what gets built: cutouts, the feet of trimmed bins and the gap between bins</h2>
       <p>Settled: the web generator's geometry is followed everywhere the departures table does not say otherwise.</p>
     </section>
 
@@ -557,7 +558,7 @@ figcaption {
           <thead><tr><th>Question</th><th>Decided by</th><th>Unblocked by</th><th>Status</th></tr></thead>
           <tbody>
             <tr><td>Are cutouts subtracted from the bin with a mesh-boolean library outside SolidCraft, as the web generator does in the browser? Yes adds the cutout part, whose output is a mesh only, with no STEP; no leaves it out or replaces it with a pocket swept from the model's outline.</td><td>Eric Garner</td><td>Agreeing to the new dependency, <code>manifold3d</code></td><td><span class="pill review">Open</span></td></tr>
-            <tr><td>Does a bin trimmed to a size get a narrower foot, with the full profile, under its part-cell, rather than the web generator's foot cut flat? Yes makes trimmed bins buildable within the stitched shell; the cut-flat foot needs a different construction for those feet.</td><td>Eric Garner</td><td>Whether trimmed bins are wanted at all</td><td><span class="pill review">Open</span></td></tr>
+            <tr><td>Do trimmed bins keep narrower feet of the full profile in the cut column or row, rather than the web generator's whole feet cut flat? No needs a different construction for those feet, since a flat-cut foot cannot be sewn into the shell.</td><td>Eric Garner</td><td>A trimmed bin tried in a baseplate trimmed to the same size</td><td><span class="pill review">Open</span></td></tr>
             <tr><td>Do bins keep the web generator's 0.62 mm gap or take the standard's 0.5 mm? The answer moves every bin's outline and feet.</td><td>Eric Garner</td><td>A printed bin tried in a baseplate made to the standard</td><td><span class="pill review">Open</span></td></tr>
           </tbody>
         </table>

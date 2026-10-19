@@ -57,6 +57,27 @@ def test_bin(units: tuple[int, int, int], lip: LipStyle) -> None:
     assert body.size[:2] == pytest.approx((42 * x - 0.62, 42 * y - 0.62), abs=1e-3)
 
 
+@pytest.mark.parametrize(
+    ("units", "size"),
+    [
+        # The cut column keeps a narrower foot
+        ((2, 1, 3), (70.0, 42.0)),
+        # Too little is left past the first column for a foot: the floor overhangs
+        ((2, 2, 3), (46.0, 84.0)),
+        # Trimmed both ways in a single cell
+        ((1, 1, 4), (30.0, 25.0)),
+    ],
+)
+def test_trimmed_bin(units: tuple[int, int, int], size: tuple[float, float]) -> None:
+    x, y, z = units
+    config = BoxConfig(grid=Grid(x, y), units_z=z, size_x=size[0], size_y=size[1])
+    body = single(build_box(config).commands)
+    assert body.volume == pytest.approx(bin_volume(x, y, z, size=size), rel=EXACT)
+    # The bin keeps the grid's -X/-Y corner and ends at the size on the other sides
+    assert body.bbox_min[:2] == pytest.approx((-21 * x + 0.31, -21 * y + 0.31), abs=1e-3)
+    assert body.bbox_max[0] == pytest.approx(-21 * x + min(size[0], 42 * x - 0.31), abs=1e-3)
+
+
 def test_bin_without_lip_with_magnets_and_screws() -> None:
     holes = Holes(magnets=HoleStyle.FULL, screws=HoleStyle.FULL)
     config = BoxConfig(grid=Grid(2, 1), lip=LipStyle.NONE, holes=holes)

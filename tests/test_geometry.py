@@ -7,7 +7,7 @@ import math
 
 import pytest
 
-from gridfinity.base import hole_positions, perimeter_connectors
+from gridfinity.base import Footprint, gap_points, hole_positions, perimeter_connectors
 from gridfinity.box import BinShape
 from gridfinity.cli import main, parse_element
 from gridfinity.clip import profile
@@ -93,17 +93,48 @@ def test_inset_keeps_corners_concentric() -> None:
 
 
 def test_corner_holes_take_the_outermost_position_of_each_corner_cell() -> None:
-    grid = Grid(3, 2)
-    corners = hole_positions(grid, DEFAULT, HoleStyle.CORNER)
+    footprint = Footprint.of(Grid(3, 2), DEFAULT)
+    corners = hole_positions(footprint, DEFAULT, HoleStyle.CORNER, 42)
     assert sorted(corners) == sorted([(-55.0, -34.0), (-55.0, 34.0), (55.0, -34.0), (55.0, 34.0)])
-    assert len(hole_positions(grid, DEFAULT, HoleStyle.FULL)) == 24
+    assert len(hole_positions(footprint, DEFAULT, HoleStyle.FULL, 42)) == 24
 
 
 def test_connectors_bridge_neighbouring_cells_on_the_outline() -> None:
-    lines = perimeter_connectors(Grid(2, 1), DEFAULT)
+    lines = perimeter_connectors(Footprint.of(Grid(2, 1), DEFAULT))
     # Between the two cells' straight edges, top and bottom: 2 r + gap long
     assert len(lines) == 2
     assert all(line.length == pytest.approx(2 * 3.75 + 0.62) for line in lines)
+
+
+def test_a_trim_through_the_last_column_narrows_its_feet() -> None:
+    footprint = Footprint.of(Grid(2, 1), DEFAULT, size_x=70)
+    # The bin keeps the grid's -X edge and ends at 70 mm from it
+    assert footprint.outline.bounds[0] == pytest.approx(-42 + 0.31)
+    assert footprint.outline.bounds[2] == pytest.approx(-42 + 70)
+    assert footprint.columns[1] == pytest.approx((0.31, 28.0))
+    whole = [footprint.whole(cell) for cell in footprint.cells()]
+    assert whole == [True, False]
+    # No magnets in the narrowed foot
+    assert len(hole_positions(footprint, DEFAULT, HoleStyle.FULL, 42)) == 4
+
+
+def test_a_trim_too_close_to_a_grid_line_leaves_an_overhang_without_feet() -> None:
+    footprint = Footprint.of(Grid(2, 2), DEFAULT, size_x=46)
+    assert len(footprint.columns) == 1
+    pieces = perimeter_connectors(footprint)
+    # The overhang's corners are the outline's own, and its far side has no foot at all
+    assert sum(1 for piece in pieces if isinstance(piece, Arc)) == 2
+    right = footprint.outline.bounds[2]
+    assert any(
+        isinstance(p, Line) and p.start[0] == p.end[0] == pytest.approx(right) for p in pieces
+    )
+    # Strips between rows reach the overhang, so the underside is one region
+    assert len(gap_points(footprint)) == 1
+
+
+def test_a_bin_trimmed_below_one_foot_is_refused() -> None:
+    with pytest.raises(ConfigError):
+        Footprint.of(Grid(1, 1), DEFAULT, size_x=5)
 
 
 def test_clip_profile_matches_the_web_generator() -> None:

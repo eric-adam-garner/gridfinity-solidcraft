@@ -11,7 +11,7 @@ import math
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from gridfinity.config import BoxConfig, Element, ElementKind, LipStyle, Orientation
+from gridfinity.config import BoxConfig, ConfigError, Element, ElementKind, LipStyle, Orientation
 from solidcraft_script.loops import Arc, Line, Point2, RoundedRect, Segment
 from solidcraft_script.script import Plane, Script
 
@@ -52,6 +52,8 @@ def add_elements(script: Script, config: BoxConfig, shape: BinShape, body: str) 
     for index, element in enumerate(config.elements, 1):
         name = f"{element.kind.value.capitalize()}{index}"
         place = placement(config, element)
+        if not inside(place, element, shape):
+            raise ConfigError(f"element {index - 1} lies outside the trimmed bin")
         with script.sketch(f"{name}Section", place.plane) as sketch:
             sketch.segments(section(config, shape, element, place))
         script.add(
@@ -66,9 +68,11 @@ def add_elements(script: Script, config: BoxConfig, shape: BinShape, body: str) 
     # Trim every element back to the middle of the outer wall, which also rounds the ends that
     # run into the bin's corners, then join them all to the bin
     trim = shape.outline.inset(shape.wall / 2)
-    x0, y0, x1, y1 = shape.outline.bounds
+    x0 = shape.outline.bounds[0]
     margin = OVERHANG + 1
-    outside = RoundedRect(shape.outline.center, x1 - x0 + 2 * margin, y1 - y0 + 2 * margin, 0.0)
+    # Around the whole grid: an element on a trimmed bin can reach past the trimmed edge
+    grid = config.grid
+    outside = RoundedRect((0.0, 0.0), grid.width + 2 * margin, grid.depth + 2 * margin, 0.0)
     with script.sketch("ElementTrimSection", Plane.horizontal(shape.floor - SINK - 1)) as sketch:
         sketch.rectangle(outside)
         sketch.rounded_rectangle(trim)
@@ -84,6 +88,16 @@ def add_elements(script: Script, config: BoxConfig, shape: BinShape, body: str) 
     script.add("solid.combine", target=body, tools=names, operation="join")
     sketches = [f"{n}Section" for n in names]
     script.group("Elements", [*sketches, *names, "ElementTrimSection", "ElementTrim"])
+
+
+def inside(place: Placement, element: Element, shape: BinShape) -> bool:
+    """Whether an element's line crosses the bin and its start lies short of the far wall."""
+    x0, y0, x1, y1 = shape.outline.bounds
+    if element.orientation == Orientation.X:
+        line, start, low, high, far = place.line, place.plane.origin[0], y0, y1, x1
+    else:
+        line, start, low, high, far = -place.line, place.plane.origin[1], x0, x1, y1
+    return low - 1e-6 <= line <= high + 1e-6 and start < far - 1e-6
 
 
 def placement(config: BoxConfig, element: Element) -> Placement:

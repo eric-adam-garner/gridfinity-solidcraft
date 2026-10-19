@@ -78,6 +78,9 @@ def parser() -> argparse.ArgumentParser:
     box.add_argument("--outer-wall", type=float, help="outer wall thickness, mm")
     box.add_argument("--inner-wall", type=float, help="thickness of inner walls, mm")
     box.add_argument("--scoop-shape", type=float, help="scoop curve, 0.1 (shallow) to 0.4 (round)")
+    box.add_argument(
+        "--size", type=float, nargs=2, metavar=("X", "Y"), help="trim to this size, mm"
+    )
     for kind in ElementKind:
         box.add_argument(
             f"--{kind.value}",
@@ -198,6 +201,8 @@ def configure(args: argparse.Namespace) -> tuple[PartKind, PartConfig]:
         inner_wall=args.inner_wall,
         scoop_shape=args.scoop_shape,
     )
+    if args.size:
+        changes.update(size_x=args.size[0], size_y=args.size[1])
     return kind, replace(config, grid=grid, holes=holes, elements=tuple(elements), **changes)
 
 
@@ -230,14 +235,13 @@ def build(kind: PartKind, config: PartConfig) -> Script:
 
 def default_name(kind: PartKind, config: PartConfig) -> str:
     """File names as the web generator gives them."""
+    if isinstance(config, ClipConfig):
+        return f"connection-clip-{config.unit_size:g}"
+    g = config.grid
+    trimmed = "-cut" if config.size_x is not None or config.size_y is not None else ""
     if isinstance(config, BoxConfig):
-        g = config.grid
-        return f"box-{g.units_x}-{g.units_y}-{config.units_z}"
-    if isinstance(config, BaseplateConfig):
-        g = config.grid
-        trimmed = "-cut" if config.size_x is not None or config.size_y is not None else ""
-        return f"baseplate-{g.units_x}-{g.units_y}{trimmed}"
-    return f"connection-clip-{config.unit_size:g}"
+        return f"box-{g.units_x}-{g.units_y}-{config.units_z}{trimmed}"
+    return f"baseplate-{g.units_x}-{g.units_y}{trimmed}"
 
 
 def build_headless(script: Script, outputs: Sequence[Path]) -> None:

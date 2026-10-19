@@ -51,19 +51,37 @@ def bin_volume(
     wall: float = 1.2,
     holes: float = 0.0,
     pitch: float = 42.0,
+    size: tuple[float, float] | None = None,
 ) -> float:
-    """A bin of the web generator's dimensions, written out from its drawing."""
+    """A bin of the web generator's dimensions, written out from its drawing. A `size` trims it
+    from the grid's -X/-Y corner, narrowing the feet it cuts through and dropping any foot
+    narrower than its corners."""
     gap, r = 0.62, 3.75
-    cell = pitch - gap
-    foot = frustum(cell, cell, r, [(0.0, 4.75), (2.15, 2.6), (2.15, 0.8), (2.95, 0.0)])
     width, depth = units_x * pitch - gap, units_y * pitch - gap
+    if size is not None:
+        width, depth = min(size[0] - gap / 2, width), min(size[1] - gap / 2, depth)
+
+    def spans(units: int, extent: float) -> list[float]:
+        kept = []
+        for index in range(units):
+            low = index * pitch
+            span = min(low + pitch - gap, extent) - low
+            if span < 2 * r:
+                break
+            kept.append(span)
+        return kept
+
+    profile = [(0.0, 4.75), (2.15, 2.6), (2.15, 0.8), (2.95, 0.0)]
+    feet = sum(
+        frustum(a, b, r, profile) for a in spans(units_x, width) for b in spans(units_y, depth)
+    )
     floor = 4.75 + 1.21
     nominal = 7 * units_z
     if lip == "none":
         top = nominal + 4.85
         body = area(width, depth, r) * (top - 4.75)
         cavity = area(width, depth, r, wall) * (top - floor)
-        return units_x * units_y * foot + body - cavity - holes
+        return feet + body - cavity - holes
     apex = nominal + 4.995
     if lip == "default":
         # (inset, depth below the apex); the lip slope comes back out to the wall
@@ -76,7 +94,7 @@ def bin_volume(
     cavity = frustum(width, depth, r, [(i, apex - d) for i, d in inner])
     body = area(width, depth, r) * (apex - 4.75)
     loss = fillet_loss(width, depth, r, 0.1, math.pi / 4)
-    return units_x * units_y * foot + body - cavity - holes - loss
+    return feet + body - cavity - holes - loss
 
 
 def baseplate_volume(units_x: int, units_y: int, lift: float = 0.0, holes: float = 0.0) -> float:

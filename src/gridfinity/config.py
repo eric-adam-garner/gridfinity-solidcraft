@@ -151,11 +151,15 @@ class BoxConfig:
     inner_wall: float = 0.8
     scoop_shape: float = 0.4
     elements: tuple[Element, ...] = ()
+    # Trim the bin to this size (mm) on its +X/+Y sides; None keeps the whole grid
+    size_x: float | None = None
+    size_y: float | None = None
     standard: Standard = DEFAULT
 
     def validate(self) -> None:
         self.grid.validate()
         self.holes.validate()
+        _sizes(self.grid, self.size_x, self.size_y)
         _range("units_z", self.units_z, UNITS_Z, whole=True)
         _range("outer_wall", self.outer_wall, WALL_THICKNESS)
         _range("inner_wall", self.inner_wall, WALL_THICKNESS)
@@ -187,18 +191,7 @@ class BaseplateConfig:
     def validate(self) -> None:
         self.grid.validate()
         self.holes.validate()
-        for name, size, units in (
-            ("size_x", self.size_x, self.grid.units_x),
-            ("size_y", self.size_y, self.grid.units_y),
-        ):
-            if size is None:
-                continue
-            u = self.grid.unit_size
-            low, high = (units - 1) * u + 1, units * u
-            if not low <= size <= high:
-                raise ConfigError(
-                    f"{name} = {size} must lie in {low:g}..{high:g} for {units} units"
-                )
+        _sizes(self.grid, self.size_x, self.size_y)
 
 
 @dataclass(frozen=True)
@@ -282,6 +275,17 @@ def _convert(name: str, value: Any) -> Any:
     if name == "standard":
         raise ConfigError("the standard is not read from JSON")
     return value
+
+
+def _sizes(grid: Grid, size_x: float | None, size_y: float | None) -> None:
+    """A trimmed size cuts into the last unit of the grid and no further."""
+    for name, size, units in (("size_x", size_x, grid.units_x), ("size_y", size_y, grid.units_y)):
+        if size is None:
+            continue
+        u = grid.unit_size
+        low, high = (units - 1) * u + 1, units * u
+        if not low <= size <= high:
+            raise ConfigError(f"{name} = {size} must lie in {low:g}..{high:g} for {units} units")
 
 
 def _range(name: str, value: float, bounds: tuple[float, float], whole: bool = False) -> None:
