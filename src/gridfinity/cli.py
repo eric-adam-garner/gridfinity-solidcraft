@@ -328,9 +328,7 @@ def run_collection(args: argparse.Namespace) -> int:
             with ControlClient(args.port) as app:
                 app.request("ui.documents", {"action": "new"})
                 app.execute("file.new", {"name": args.config.stem})
-                # Steps that load a file cannot run inside a batch
-                for step in script.commands:
-                    app.execute(step["command"], step["params"])
+                app.batch(script.commands)
                 app.execute("file.save", {"path": str(out.resolve())})
         else:
             run(script.commands, save=out)

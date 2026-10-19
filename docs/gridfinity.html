@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Gridfinity in SolidCraft</title>
+<style>
+:root {
+  --paper: #fbfaf7;
+  --panel: #ffffff;
+  --panel-2: #f1efe9;
+  --ink: #1d1f22;
+  --ink-2: #4b5058;
+  --ink-3: #7a8089;
+  --rule: #dedbd3;
+  --rule-strong: #c2bdb1;
+  --accent: #b5541c;
+  --accent-soft: #f6e6da;
+  --link: #9a4413;
+  --draft: #8a6510;
+  --draft-soft: #f5ebcf;
+  --open: #2f6390;
+  --open-soft: #e2edf7;
+  --done: #2f7a4f;
+  --done-soft: #e1f1e7;
+  --fig-ground: #fdfcfa;
+
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #16171a;
+    --panel: #1d1f23;
+    --panel-2: #24272c;
+    --ink: #ebe8e1;
+    --ink-2: #b3b0a8;
+    --ink-3: #85837d;
+    --rule: #33363c;
+    --rule-strong: #4a4e56;
+    --accent: #f0955a;
+    --accent-soft: #3a2619;
+    --link: #f3a777;
+    --draft: #e4bd5c;
+    --draft-soft: #3a3019;
+    --open: #86b6e0;
+    --open-soft: #1c2a38;
+    --done: #7fcf9e;
+    --done-soft: #1b3326;
+    --fig-ground: #1a1b1f;
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: #16171a;
+  --panel: #1d1f23;
+  --panel-2: #24272c;
+  --ink: #ebe8e1;
+  --ink-2: #b3b0a8;
+  --ink-3: #85837d;
+  --rule: #33363c;
+  --rule-strong: #4a4e56;
+  --accent: #f0955a;
+  --accent-soft: #3a2619;
+  --link: #f3a777;
+  --draft: #e4bd5c;
+  --draft-soft: #3a3019;
+  --open: #86b6e0;
+  --open-soft: #1c2a38;
+  --done: #7fcf9e;
+  --done-soft: #1b3326;
+  --fig-ground: #1a1b1f;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 1rem/1.7 var(--sans);
+}
+
+a { color: var(--link); text-underline-offset: 0.18em; }
+a:hover { text-decoration-thickness: 2px; }
+
+code {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  background: var(--panel-2);
+  border-radius: 4px;
+  padding: 0.05em 0.35em;
+  overflow-wrap: anywhere;
+}
+
+.sheet {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 2.75rem) 5rem;
+}
+
+/* Title block */
+
+.titleblock {
+  padding: clamp(2.5rem, 7vw, 4.5rem) 0 1.5rem;
+  border-bottom: 3px solid var(--ink);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1.5rem 3rem;
+  align-items: end;
+}
+
+.titleblock h1 {
+  font-family: var(--serif);
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  line-height: 1.15;
+  font-weight: 600;
+  margin: 0.4rem 0 1rem;
+  max-width: 30ch;
+}
+
+.titleblock p {
+  margin: 0;
+  max-width: 70ch;
+  color: var(--ink-2);
+}
+
+.stamp {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 0.35rem 1rem;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  align-items: baseline;
+}
+
+.stamp span { color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.08em; }
+.stamp b { font-weight: 500; }
+
+.provenance {
+  grid-column: 1 / -1;
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.4rem 1.25rem;
+  font-size: 0.86rem;
+  color: var(--ink-2);
+}
+
+.provenance dt {
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  padding-top: 0.15rem;
+}
+
+.provenance dd { margin: 0; }
+
+@media (max-width: 760px) {
+  .titleblock { grid-template-columns: minmax(0, 1fr); }
+  .provenance { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Status pills */
+
+.pill {
+  display: inline-block;
+  padding: 0.08rem 0.6rem;
+  border-radius: 999px;
+  font: 600 0.72rem/1.6 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.pill.draft { color: var(--draft); background: var(--draft-soft); }
+.pill.review { color: var(--open); background: var(--open-soft); }
+.pill.accepted { color: var(--done); background: var(--done-soft); }
+
+/* Sections */
+
+.eyebrow {
+  margin: 0 0 0.4rem;
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+}
+
+.stage-head {
+  margin-top: 3.5rem;
+  padding-top: 1.75rem;
+  border-top: 2px solid var(--ink);
+}
+
+.stage-head h2 {
+  font-family: var(--serif);
+  font-size: clamp(1.4rem, 3vw, 1.85rem);
+  line-height: 1.25;
+  font-weight: 600;
+  margin: 0 0 1rem;
+  max-width: 44ch;
+}
+
+.step {
+  margin-top: 2.25rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+
+.step h3 {
+  font-family: var(--serif);
+  font-size: 1.2rem;
+  line-height: 1.35;
+  font-weight: 600;
+  margin: 0 0 0.75rem;
+  max-width: 60ch;
+}
+
+main p { margin: 0 0 1rem; max-width: 78ch; }
+
+main ul, main ol { padding-left: 1.4rem; max-width: 78ch; }
+main li { margin-bottom: 1rem; }
+main li:last-child { margin-bottom: 0; }
+
+/* Tables */
+
+.scroller { overflow-x: auto; margin: 1.25rem 0 1.5rem; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+}
+
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+th {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  background: var(--panel-2);
+}
+
+tbody tr:last-child td { border-bottom: 0; }
+
+td.name { font-weight: 600; white-space: nowrap; }
+td.value { font-family: var(--mono); font-size: 0.82rem; color: var(--accent); white-space: nowrap; }
+
+@media (max-width: 760px) {
+  td.name, td.value { white-space: normal; }
+}
+
+/* Code */
+
+pre {
+  margin: 1.25rem 0 1.5rem;
+  padding: 1rem 1.2rem;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  overflow-x: auto;
+  font: 0.82rem/1.65 var(--mono);
+  color: var(--ink-2);
+}
+
+pre .k { color: var(--ink); font-weight: 600; }
+pre .c { color: var(--ink-3); font-style: italic; }
+
+/* Figures */
+
+figure {
+  margin: 1.75rem 0;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  padding: 0.5rem 0.5rem 0;
+}
+
+.fig {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--fig-ground);
+}
+
+figcaption {
+  margin-top: 0.5rem;
+  padding: 0.7rem 0.75rem 0.85rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.82rem;
+  color: var(--ink-2);
+}
+
+/* Notes */
+
+.note {
+  margin: 1.5rem 0;
+  padding: 0.9rem 1.1rem;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  font-size: 0.92rem;
+}
+
+.note p:last-child { margin-bottom: 0; }
+</style>
+</head>
+<body>
+
+<div class="sheet">
+  <header class="titleblock">
+    <div>
+      <p class="eyebrow">Design doc &#183; gridfinity</p>
+      <h1>Gridfinity in SolidCraft: the web generator's bins, baseplates, clips and collections, built as SolidCraft designs that can be extended</h1>
+      <p>A Python package turns the settings of gridfinitygenerator.com into SolidCraft command scripts. One script builds a part headless through <code>solidcraft-cli</code>, writing STL, STEP, 3MF or a SolidCraft design, or replays into the running app as a design of its own. This doc owns what each part is made of, the dimensions it follows and where they depart from the web generator, how the geometry is built in SolidCraft, and where to extend it.</p>
+    </div>
+    <div class="stamp">
+      <span>Owner</span><b>Eric Garner</b>
+      <span>Status</span><b><span class="pill draft">Draft</span></b>
+      <span>Area</span><b>gridfinity &#183; solidcraft_script</b>
+    </div>
+
+    <dl class="provenance">
+      <dt>Related docs</dt>
+      <dd>
+        <a href="https://gridfinitygenerator.com/en">gridfinitygenerator.com</a> &mdash; the generator these parts reproduce &#183;
+        <a href="../README.md">README.md</a> &mdash; installing and the first commands
+      </dd>
+    </dl>
+  </header>
+
+  <main>
+
+    <section class="stage-head" id="parts">
+      <p class="eyebrow">Parts</p>
+      <h2>Four kinds of part are built, each from settings that name the web generator's controls</h2>
+      <p>Every part is set from a JSON file, from command-line options, or both, the options overriding the file. Its settings are checked against the web generator's ranges before anything is built, and a setting out of range stops the build and names the setting.</p>
+      <div class="scroller">
+        <table>
+          <thead><tr><th>Part</th><th>What it is</th><th>Command</th></tr></thead>
+          <tbody>
+            <tr><td class="name">Box</td><td>A bin: a foot under every grid cell, a floor, an outer wall with a stacking lip, and walls, ledges and scoops placed inside</td><td><code>gridfinity box</code></td></tr>
+            <tr><td class="name">Baseplate</td><td>A pocket for every grid cell, open underneath, with optional magnet and screw pads in the pocket corners, connector slots on the outer edges, and trimming to a drawer's size</td><td><code>gridfinity baseplate</code></td></tr>
+            <tr><td class="name">Connection clip</td><td>The clip that joins two connectable baseplates across their seam</td><td><code>gridfinity clip</code></td></tr>
+            <tr><td class="name">Collection</td><td>Parts laid out by whole cells inside a bounding volume, such as a drawer, each saved as its own design and linked into one</td><td><code>gridfinity collection</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The web generator's fifth kind, a cutout fitted to an imported STL model, is not built: see <a href="#out-of-scope">what is left out</a> and <a href="#questions">the open questions</a>.</p>
+    </section>
+
+    <section class="stage-head" id="settings">
+      <p class="eyebrow">Settings</p>
+      <h2>A box is set by its grid size, height, lip, holes, walls and elements, with the web generator's ranges and defaults</h2>
+      <p>The field column names each setting as a box's JSON file holds it; a dotted name is a field of a nested object.</p>
+    </section>
+
+    <article class="step" id="box-settings">
+      <p class="eyebrow">Box</p>
+      <h3>Lengths are millimetres and heights are units of 7 mm</h3>
+      <div class="scroller">
+        <table>
+          <thead><tr><th>Setting</th><th>Field</th><th>Admits</th><th>Default</th></tr></thead>
+          <tbody>
+            <tr><td class="name">Grid units across and deep</td><td><code>grid.units_x</code>, <code>grid.units_y</code></td><td>Whole numbers 1 to 20</td><td class="value">2 &#215; 2</td></tr>
+            <tr><td class="name">Grid unit size</td><td><code>grid.unit_size</code></td><td>12 to 70 mm</td><td class="value">42</td></tr>
+            <tr><td class="name">Height</td><td><code>units_z</code></td><td>Whole numbers 2 to 20</td><td class="value">3</td></tr>
+            <tr><td class="name">Lip</td><td><code>lip</code></td><td>default, thin or none</td><td class="value">default</td></tr>
+            <tr><td class="name">Magnets, screws</td><td><code>holes.magnets</code>, <code>holes.screws</code></td><td>none; corner, the outermost hole at each corner of the bin; full, four under every cell</td><td class="value">none</td></tr>
+            <tr><td class="name">Magnet diameter and height</td><td><code>holes.magnet_diameter</code>, <code>holes.magnet_height</code></td><td>2 to 8.2 mm; 1 to 4 mm</td><td class="value">6.2; 2.1</td></tr>
+            <tr><td class="name">Outer wall, inner walls</td><td><code>outer_wall</code>, <code>inner_wall</code></td><td>0.4 to 3 mm each</td><td class="value">1.2; 0.8</td></tr>
+            <tr><td class="name">Scoop shape</td><td><code>scoop_shape</code></td><td>0.1, a shallow curve, to 0.4, close to a quarter circle</td><td class="value">0.4</td></tr>
+            <tr><td class="name">Elements</td><td><code>elements</code></td><td>Walls, ledges and scoops, each placed as below</td><td class="value">none</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>An element runs along a line of the grid divided into twelfths of a unit. Its start and its line are counted in twelfths from the bin's &#8722;X/&#8722;Y corner, and its length in twelfths. An element oriented along X starts at <code>x</code> on the line <code>y</code>; one oriented along Y swaps the two. A line on the grid's edge lies on the bin's outer face. A wall is centred on its line. A ledge is a 45 degree shelf 15 mm wide whose top is level with the walls' tops; it hangs from its line toward +Y, or +X for a Y element, and the other way when flipped. A scoop rises from the floor in a curve to its line on the same side. A bin lower than three units takes a shorter ledge and scoop. On the command line an element is written <code>X,Y,LENGTH</code>, then <code>y</code> for a Y element and <code>flip</code> to flip it, as in <code>--scoop 0,0,36</code> or <code>--wall 12,0,24,y</code>.</p>
+    </article>
+
+    <article class="step" id="baseplate-settings">
+      <p class="eyebrow">Baseplate, clip and collection</p>
+      <h3>A baseplate adds connector slots and trimming; a clip has only a size and a tolerance; a collection places parts by whole cells</h3>
+      <div class="scroller">
+        <table>
+          <thead><tr><th>Part</th><th>Setting</th><th>Field</th><th>Admits</th><th>Default</th></tr></thead>
+          <tbody>
+            <tr><td class="name">Baseplate</td><td>Grid, magnets and screws</td><td>as for a box</td><td>Magnets and screws: none or full</td><td class="value">2 &#215; 2, none</td></tr>
+            <tr><td class="name">Baseplate</td><td>Connector slots</td><td><code>connectable</code></td><td>true or false</td><td class="value">false</td></tr>
+            <tr><td class="name">Baseplate</td><td>Trim to size, from the &#8722;X/&#8722;Y corner</td><td><code>size_x</code>, <code>size_y</code></td><td>From one unit less than the grid plus 1 mm up to the full grid, in mm; or unset</td><td class="value">unset</td></tr>
+            <tr><td class="name">Clip</td><td>Grid unit size, tolerance</td><td><code>unit_size</code>, <code>tolerance</code></td><td>12 to 70 mm; &#8722;0.05 to 0.2 mm, positive opening the clip</td><td class="value">42; 0</td></tr>
+            <tr><td class="name">Collection</td><td>Grid unit size, bounds</td><td><code>unit_size</code>, <code>bounds</code></td><td>12 to 70 mm; width, depth and height in mm</td><td class="value">42; 300 &#215; 300 &#215; 100</td></tr>
+            <tr><td class="name">Collection</td><td>Each item</td><td><code>items[]</code>: <code>name</code>, <code>x</code>, <code>y</code>, <code>z</code>, <code>rotation</code>, <code>part</code></td><td>A unique name; cells across and deep; height units up; 0, 90, 180 or 270 degrees; a part's settings with its <code>kind</code></td><td class="value">0, 0, 0, 0</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>A collection builds whatever its layout asks for and warns, part by part, where the web generator flags a layout: a part outside the bounds, two parts claiming one cell, a part whose grid unit differs from the collection's. Baseplates contend only with baseplates, on the grid; every other part contends with every other in grid cells and height units, a box claiming its height plus 4.4 mm for its lip. Items with identical settings share one design.</p>
+    </article>
+
+    <section class="stage-head" id="dimensions">
+      <p class="eyebrow">Dimensions</p>
+      <h2>The parts keep the web generator's dimensions, which keep the Gridfinity profiles but leave a wider gap between bins</h2>
+      <p>The standard leaves half a millimetre between neighbouring bins; the web generator leaves 0.62 mm, and so do these parts. Everything else follows the Gridfinity profiles: a foot that steps in at 45 degrees, straight and at 45 degrees again, a lip that takes the foot of the bin stacked on it, and a baseplate pocket that the foot sits in.</p>
+      <figure id="fig-bin-section">
+        <!-- figure:bin-section -->
+        <svg class="fig" viewBox="0 0 1000 497" role="img" aria-label="Section through a bin's wall from its outer face inward: the stepped foot below the floor, the outer wall, and the stacking lip whose 45 degree slopes take the foot of the bin stacked on it."><text x="140.0" y="243.7" text-anchor="end" style="fill: var(--ink-2)" font-size="13">outer face</text><path d="M200.2,463.5 L303.0,463.5 L303.0,362.2 L170.4,362.2 L170.4,152.5 L200.2,122.7 L200.2,102.3 L186.6,88.7 L186.6,58.1 L152.9,24.5 L152.0,24.0 L151.0,24.1 L150.3,24.7 L150.0,25.7 L150.0,382.7 L186.6,419.3 L186.6,449.9 L200.2,463.5 Z" style="fill: var(--accent-soft); stroke: var(--accent)" stroke-width="1.6" stroke-linejoin="round"/><line x1="142.0" y1="463.5" x2="311.0" y2="463.5" style="stroke: var(--rule-strong)" stroke-width="1" stroke-dasharray="3 4"/><text x="317.0" y="467.5" style="fill: var(--ink-2)" font-size="13">0 · underside of the foot</text><line x1="142.0" y1="382.7" x2="311.0" y2="382.7" style="stroke: var(--rule-strong)" stroke-width="1" stroke-dasharray="3 4"/><text x="317.0" y="386.7" style="fill: var(--ink-2)" font-size="13">4.75 · top of the foot</text><line x1="142.0" y1="362.2" x2="311.0" y2="362.2" style="stroke: var(--rule-strong)" stroke-width="1" stroke-dasharray="3 4"/><text x="317.0" y="366.2" style="fill: var(--ink-2)" font-size="13">5.96 · floor</text><line x1="142.0" y1="106.5" x2="311.0" y2="106.5" style="stroke: var(--rule-strong)" stroke-width="1" stroke-dasharray="3 4"/><text x="317.0" y="110.5" style="fill: var(--ink-2)" font-size="13">7 × height units · walls, ledges and scoops end</text><line x1="142.0" y1="24.0" x2="311.0" y2="24.0" style="stroke: var(--rule-strong)" stroke-width="1" stroke-dasharray="3 4"/><text x="317.0" y="28.0" style="fill: var(--ink-2)" font-size="13">7 × units + 4.85 · top of the lip</text><text x="206.2" y="481.5" style="fill: var(--ink-2)" font-size="13">2.95</text><text x="176.4" y="328.2" style="fill: var(--ink-2)" font-size="13">1.2 wall</text><text x="206.2" y="140.7" style="fill: var(--ink-2)" font-size="13">2.95</text><text x="8.0" y="489.5" style="fill: var(--ink-3)" font-size="10">fig-bin-section</text></svg>
+        <!-- /figure:bin-section -->
+        <figcaption><span>Heights in mm from the underside of the feet; insets in mm from the outer face. The apex of the lip is rounded in four flat pieces.</span></figcaption>
+      </figure>
+      <div class="scroller">
+        <table>
+          <thead><tr><th>Dimension</th><th>Value</th></tr></thead>
+          <tbody>
+            <tr><td class="name">Height unit</td><td>7 mm</td></tr>
+            <tr><td class="name">Gap between bins</td><td>0.62 mm in all, half on each side of a bin</td></tr>
+            <tr><td class="name">Bin corner radius</td><td>3.75 mm, smaller by the inset wherever a profile steps in</td></tr>
+            <tr><td class="name">Foot, from its top edge down</td><td>2.15 in at 45&#176;, 1.8 straight, 0.8 in at 45&#176;: 4.75 tall</td></tr>
+            <tr><td class="name">Floor</td><td>1.21 above the top of the foot</td></tr>
+            <tr><td class="name">Default lip, from its apex down</td><td>2.15 in at 45&#176;, 1.8 straight, 0.8 in at 45&#176;, 1.2 straight, back out at 45&#176;; apex 4.995 above the height units, rounded r 0.1</td></tr>
+            <tr><td class="name">Thin lip</td><td>1.95 in at 45&#176;, 1.8 straight, back out at 45&#176;</td></tr>
+            <tr><td class="name">Top without a lip</td><td>4.85 above the height units</td></tr>
+            <tr><td class="name">Magnet and screw holes</td><td>Centred (unit &#8722; 16) / 2 from the cell centre on both axes; screws r 1.5, 4.5 deep</td></tr>
+            <tr><td class="name">Baseplate pocket, from the grid line down</td><td>2.15 in at 45&#176;, 1.8 straight, 0.7 in at 45&#176;: 4.65 tall; corner radius 4 at the top</td></tr>
+            <tr><td class="name">Baseplate with magnets or screws</td><td>3 taller, with a 10 mm pad in each pocket corner, its inner corner rounded r 4.5 about the hole; screws &#216; 3.5 through the pad</td></tr>
+            <tr><td class="name">Connector slot length along the edge</td><td>20 for a unit of 35 or more, 15 from 25, 10 from 19, 5 from 14, else 4</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="stage-head" id="departures">
+      <p class="eyebrow">Departures</p>
+      <h2>Where the web generator's geometry would misfit a part or cannot be built in SolidCraft, these parts differ from it</h2>
+      <div class="scroller">
+        <table>
+          <thead><tr><th>Where</th><th>Web generator</th><th>These parts</th></tr></thead>
+          <tbody>
+            <tr><td class="name">Magnet pocket in a bin's foot</td><td>0.25 shallower than the magnet</td><td>As deep as the magnet</td></tr>
+            <tr><td class="name">Baseplate magnet and screw holes</td><td>13.5 from the cell centre for a 42 mm unit, half a millimetre off the bins' holes</td><td>On the bins' holes, with the pads moved with them</td></tr>
+            <tr><td class="name">Baseplate pocket corners</td><td>Sharp</td><td>Rounded as the standard's pockets are</td></tr>
+            <tr><td class="name">Floor of a connector slot</td><td>0.7 up, on the crease in the pocket wall</td><td>0.65 up, below the crease and level with the clip's underside, since a cut along a crease cannot be resolved</td></tr>
+            <tr><td class="name">Start of a scoop's curve</td><td>Just below the floor</td><td>0.05 above the floor, with a step that high at its toe, since a curve meeting the floor almost tangentially makes the join slow and inexact</td></tr>
+            <tr><td class="name">Rounding of the lip's apex</td><td>A fillet</td><td>Four flat pieces of the same arc</td></tr>
+            <tr><td class="name">Ends of walls, ledges and scoops</td><td>Run to the outer face and rounded into the corners; a wall on an edge line stands half outside the bin</td><td>Trimmed to the middle of the outer wall, which rounds them into the corners and keeps every element inside</td></tr>
+            <tr><td class="name">Elements' undersides</td><td>0.01 into the floor</td><td>0.5 into the floor, where nothing shows</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="stage-head" id="construction">
+      <p class="eyebrow">Construction</p>
+      <h2>A part's outer shape is one closed shell sewn from faces, and booleans run only where faces cross</h2>
+      <p>SolidCraft's tapered cuts across a grid of feet are slow and fail on larger grids, so no part is cut out of a block. Each face of the shell is a flat patch, a straight extrusion or a ruled loft between two loops, and the faces are stitched into one solid.</p>
+    </section>
+
+    <article class="step" id="sweeps">
+      <p class="eyebrow">Profiles</p>
+      <h3>A profile of inset and height points swept around a rounded rectangle gives a ring of faces, one per step</h3>
+      <p>A step with no rise is a flat ring, a step with no change of inset a straight wall, and any other step a ruled loft between the rectangle moved inward by the two insets; the corners stay concentric, so a 45 degree step is a true 45 degree face. All outlines swept with one profile share one sketch per point, so the feet of a bin take one sketch per height. The foot, the bin's wall and lip, and the baseplate's pockets are each such a sweep.</p>
+    </article>
+
+    <article class="step" id="edges">
+      <p class="eyebrow">Edges</p>
+      <h3>Where a face meets an edge broken into pieces, the face across it breaks at the same points</h3>
+      <p>Stitching joins faces along shared edges, and an edge that one face holds whole and another holds in pieces leaves a solid that later booleans fail on. Three places break edges to match: a bin's outer wall breaks its bottom edge where the feet meet it and where the underside between them does; a baseplate's outer wall breaks its top edge where the pockets meet it; a lifted baseplate's pocket loops break where the pads' edges meet the pocket walls, from the pads all the way up.</p>
+    </article>
+
+    <article class="step" id="booleans">
+      <p class="eyebrow">Booleans</p>
+      <h3>Elements are drawn across their line, extruded along it, trimmed to the middle of the outer wall by one cut and joined to the bin in one join</h3>
+      <p>The trim reaches every element and keeps its name, and the join takes them all at once. Connector slots are cut into the stitched plate, and a trimmed plate is cut back with a box. A join SolidCraft completes only on a tolerance retry is accepted only where a test holds its volume to a hand calculation: a scoop meeting the floor, and a ledge on an edge line running into the corners.</p>
+    </article>
+
+    <section class="stage-head" id="running">
+      <p class="eyebrow">Running</p>
+      <h2>A part is written to files headless, or built in the open app as a design of its own</h2>
+      <pre><span class="c"># a 3 &#215; 2 bin, 6 units tall, corner magnets, two dividers, a scoop and a label ledge</span>
+<span class="k">uv run gridfinity box</span> --units 3 2 --height 6 --magnets corner \
+    --wall 12,0,24,y --wall 24,0,24,y --scoop 0,0,36 --ledge 0,24,36,flip \
+    --out box-3-2-6.stl --out box-3-2-6.step
+
+<span class="c"># the same settings as JSON, to keep or edit, then built from the file</span>
+<span class="k">uv run gridfinity box</span> --units 3 2 --height 6 --print-config &gt; bin.json
+<span class="k">uv run gridfinity box</span> --config bin.json --out bin.3mf
+
+<span class="k">uv run gridfinity baseplate</span> --units 5 4 --magnets full --connectable --out plate.stl
+<span class="k">uv run gridfinity baseplate</span> --units 7 5 --size 290 200 --out drawer-plate.stl
+<span class="k">uv run gridfinity clip</span> --tolerance 0.05 --out clip.stl
+
+<span class="c"># every part into a folder, and the collection design linking them</span>
+<span class="k">uv run gridfinity collection</span> --config examples/drawer.json --folder drawer --export stl
+
+<span class="c"># build in the running SolidCraft app instead, in a new tab, and save it</span>
+<span class="k">uv run gridfinity box</span> --units 2 1 --live --out box-2-1-3.solidcraft</pre>
+      <p>A file's extension picks its format: STL, STEP, 3MF and OBJ are exports, a <code>.solidcraft</code> name saves the design and <code>.json</code> saves it as plain JSON. With neither an output nor a script named, a part is written as STL under the web generator's name for it. <code>--script</code> also writes the command script, which <code>solidcraft-cli run</code> and the MCP <code>batch</code> tool take unchanged. Building in the app opens a new tab first and leaves whatever is open untouched; the app answers only between frames, and has been seen to stall while its window was in the background.</p>
+    </section>
+
+    <section class="stage-head" id="extending">
+      <p class="eyebrow">Extending</p>
+      <h2>General SolidCraft scripting and the Gridfinity parts live in separate packages, and only the second knows what a bin is</h2>
+      <div class="scroller">
+        <table>
+          <thead><tr><th>Package</th><th>Module</th><th>Holds</th></tr></thead>
+          <tbody>
+            <tr><td class="name">solidcraft_script</td><td><code>script.py</code></td><td>The command list, unique feature and body names, sketch drawing with the ids SolidCraft will give each curve, sketch planes</td></tr>
+            <tr><td class="name">solidcraft_script</td><td><code>loops.py</code></td><td>Lines, arcs, circles and rounded rectangles; outlines broken at given points; rounding a polyline's corner</td></tr>
+            <tr><td class="name">solidcraft_script</td><td><code>shells.py</code></td><td>Shells sewn from surfaces: profile sweeps, walls with broken edges, stepped round holes, stitching</td></tr>
+            <tr><td class="name">solidcraft_script</td><td><code>runner.py</code>, <code>control.py</code></td><td>Running a script with <code>solidcraft-cli</code> and reading back its bodies; driving the running app over its control port</td></tr>
+            <tr><td class="name">gridfinity</td><td><code>standard.py</code>, <code>config.py</code></td><td>Every dimension in the tables above; every setting with its range, and reading and writing settings as JSON</td></tr>
+            <tr><td class="name">gridfinity</td><td><code>base.py</code>, <code>profiles.py</code>, <code>box.py</code>, <code>elements.py</code></td><td>Feet and their holes; the inner face that a lip and a wall leave together; the bin; walls, ledges and scoops</td></tr>
+            <tr><td class="name">gridfinity</td><td><code>baseplate.py</code>, <code>clip.py</code>, <code>collection.py</code>, <code>cli.py</code></td><td>The other parts, collection layout and its checks, and the command line</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>A new element kind is a member of the element kinds, a cross-section drawn in its plane across the line, and a test that measures what it adds against a volume worked out by hand. A new part kind is a settings class that checks its own ranges, a builder that returns a command script, and a subcommand. Dimensions shared by several parts belong in the standard, where one change reaches every part.</p>
+      <p>The tests come in two layers: geometry, settings and layout checked without SolidCraft, and parts built headless whose volume, size and shell count are measured against values worked out from the dimensions alone. The second layer needs <code>solidcraft-cli</code> on the path and is skipped without it. The doc's figure is drawn from the same geometry by <code>docs/figures.py</code>, and a test fails while the page holds a stale one.</p>
+    </section>
+
+    <section class="stage-head" id="out-of-scope">
+      <p class="eyebrow">Left out</p>
+      <h2>Cutouts, trimmed bins and the web generator's account features are not built</h2>
+      <ul>
+        <li>Cutouts. SolidCraft runs no boolean on an imported mesh, and an STL subtracted exactly needs a mesh boolean outside it; the first open question decides it.</li>
+        <li>Bins trimmed to a size. The web generator cuts the feet flat along the trim, which the stitched shell cannot sew; the second open question decides how a trimmed bin's feet are shaped.</li>
+        <li>GLB export, the build-plate preview, measurements in inches, and saved models, accounts and the model library.</li>
+      </ul>
+    </section>
+
+    <section class="stage-head" id="questions">
+      <p class="eyebrow">Re-plan triggers</p>
+      <h2>Three questions change what gets built: cutouts, trimmed bins and the gap between bins</h2>
+      <p>Settled: the web generator's geometry is followed everywhere the departures table does not say otherwise.</p>
+    </section>
+
+    <article class="step" id="open-questions">
+      <p class="eyebrow">Open questions</p>
+      <h3>Each question names what its answer changes about the parts</h3>
+      <div class="scroller">
+        <table>
+          <thead><tr><th>Question</th><th>Decided by</th><th>Unblocked by</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>Are cutouts subtracted from the bin with a mesh-boolean library outside SolidCraft, as the web generator does in the browser? Yes adds the cutout part, whose output is a mesh only, with no STEP; no leaves it out or replaces it with a pocket swept from the model's outline.</td><td>Eric Garner</td><td>Agreeing to the new dependency, <code>manifold3d</code></td><td><span class="pill review">Open</span></td></tr>
+            <tr><td>Does a bin trimmed to a size get a narrower foot, with the full profile, under its part-cell, rather than the web generator's foot cut flat? Yes makes trimmed bins buildable within the stitched shell; the cut-flat foot needs a different construction for those feet.</td><td>Eric Garner</td><td>Whether trimmed bins are wanted at all</td><td><span class="pill review">Open</span></td></tr>
+            <tr><td>Do bins keep the web generator's 0.62 mm gap or take the standard's 0.5 mm? The answer moves every bin's outline and feet.</td><td>Eric Garner</td><td>A printed bin tried in a baseplate made to the standard</td><td><span class="pill review">Open</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
+
+  </main>
+</div>
+
+</body>
+</html>
