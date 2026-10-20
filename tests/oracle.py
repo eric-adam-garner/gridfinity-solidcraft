@@ -98,20 +98,36 @@ def bin_volume(
 
 
 def baseplate_volume(units_x: int, units_y: int, lift: float = 0.0, holes: float = 0.0) -> float:
+    """A baseplate of the web generator's dimensions: pockets meet in sharp corners, and only
+    the corners of the plate are rounded, r 4 at the top."""
     pitch, r = 42.0, 4.0
     height = 4.65 + lift
-    pocket = frustum(
-        pitch, pitch, r, [(0.0, height), (2.15, height - 2.15), (2.15, height - 3.95), (2.85, lift)]
-    )
-    lower = 0.0
-    if lift:
-        half = pitch / 2 - 2.85
-        square = (2 * half) ** 2 - CORNER * 1.15**2
-        # A pad inside the pocket: from 8.5 out to the wall, its inner corner rounded r 4.5
-        pad = (half - 8.5) ** 2 - CORNER * 1.15**2 / 4 - CORNER * 4.5**2 / 4
-        lower = (square - 4 * pad) * lift
-    outer = area(units_x * pitch, units_y * pitch, r) * height
-    return outer - units_x * units_y * (pocket + lower) - holes
+    profile = [(0.0, height), (2.15, height - 2.15), (2.15, height - 3.95), (2.85, lift)]
+
+    def pocket(rounded: int) -> float:
+        def at(inset: float) -> float:
+            return (pitch - 2 * inset) ** 2 - rounded * (1 - math.pi / 4) * (r - inset) ** 2
+
+        return sum(
+            abs(z1 - z0) * (at(i0) + 4 * at((i0 + i1) / 2) + at(i1)) / 6
+            for (i0, z0), (i1, z1) in pairwise(profile)
+        )
+
+    total = area(units_x * pitch, units_y * pitch, r) * height
+    for i in range(units_x):
+        for j in range(units_y):
+            corners = (
+                (i == 0 and j == 0) + (i == units_x - 1 and j == 0)
+                + (i == units_x - 1 and j == units_y - 1) + (i == 0 and j == units_y - 1)
+            )  # fmt: skip
+            total -= pocket(corners)
+            if lift:
+                # Below the profile the pocket is square; a pad fills each corner from 9 mm out
+                # to the wall, its inner corner rounded r 4.5, and covers the pocket's corner
+                half = pitch / 2 - 2.85
+                pad = (half - 9.0) ** 2 - (1 - math.pi / 4) * 4.5**2
+                total -= ((2 * half) ** 2 - 4 * pad) * lift
+    return total - holes
 
 
 def polygon_area(points: list[tuple[float, float]]) -> float:

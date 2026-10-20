@@ -81,8 +81,8 @@ def test_trimmed_bin(units: tuple[int, int, int], size: tuple[float, float]) -> 
 def test_bin_without_lip_with_magnets_and_screws() -> None:
     holes = Holes(magnets=HoleStyle.FULL, screws=HoleStyle.FULL)
     config = BoxConfig(grid=Grid(2, 1), lip=LipStyle.NONE, holes=holes)
-    # Magnet pockets as deep as the magnet, screw holes on to 4.5 mm
-    drilled = 8 * (math.pi * 3.1**2 * 2.1 + math.pi * 1.5**2 * (4.5 - 2.1))
+    # Holes start 0.25 below the feet: magnet pockets 2.1 - 0.25 deep, screw holes 4.75 - 0.25
+    drilled = 8 * (math.pi * 3.1**2 * 1.85 + math.pi * 1.5**2 * (4.5 - 1.85))
     body = single(build_box(config).commands)
     assert body.volume == pytest.approx(bin_volume(2, 1, 3, "none", holes=drilled), rel=EXACT)
     assert body.size[2] == pytest.approx(21 + 4.85, abs=1e-3)
@@ -91,7 +91,7 @@ def test_bin_without_lip_with_magnets_and_screws() -> None:
 def test_corner_magnets_only_drill_four() -> None:
     config = BoxConfig(grid=Grid(2, 2), lip=LipStyle.NONE, holes=Holes(magnets=HoleStyle.CORNER))
     body = single(build_box(config).commands)
-    drilled = 4 * math.pi * 3.1**2 * 2.1
+    drilled = 4 * math.pi * 3.1**2 * 1.85
     assert body.volume == pytest.approx(bin_volume(2, 2, 3, "none", holes=drilled), rel=EXACT)
 
 

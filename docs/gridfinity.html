@@ -417,7 +417,7 @@ figcaption {
     <section class="stage-head" id="dimensions">
       <p class="eyebrow">Dimensions</p>
       <h2>The parts keep the web generator's dimensions, which keep the Gridfinity profiles but leave a wider gap between bins</h2>
-      <p>The standard leaves half a millimetre between neighbouring bins; the web generator leaves 0.62 mm, and so do these parts. Everything else follows the Gridfinity profiles: a foot that steps in at 45 degrees, straight and at 45 degrees again, a lip that takes the foot of the bin stacked on it, and a baseplate pocket that the foot sits in.</p>
+      <p>The standard leaves half a millimetre between neighbouring bins; the web generator leaves 0.62 mm, and so do these parts. Everything else follows the Gridfinity profiles: a foot that steps in at 45 degrees, straight and at 45 degrees again, a lip that takes the foot of the bin stacked on it, and a baseplate pocket that the foot sits in. Two details are the web generator's own: a baseplate's pockets meet in sharp corners, and its magnet holes sit half a millimetre further from the cell's centre than a bin's.</p>
       <figure id="fig-bin-section">
         <!-- figure:bin-section -->
         <svg class="fig" viewBox="0 0 1000 497" role="img" aria-label="Section through a bin's wall from its outer face inward: the stepped foot below the floor, the outer wall, and the stacking lip whose 45 degree slopes take the foot of the bin stacked on it."><text x="140.0" y="243.7" text-anchor="end" style="fill: var(--ink-2)" font-size="13">outer face</text><path d="M200.2,463.5 L303.0,463.5 L303.0,362.2 L170.4,362.2 L170.4,152.5 L200.2,122.7 L200.2,102.3 L186.6,88.7 L186.6,58.1 L152.9,24.5 L152.0,24.0 L151.0,24.1 L150.3,24.7 L150.0,25.7 L150.0,382.7 L186.6,419.3 L186.6,449.9 L200.2,463.5 Z" style="fill: var(--accent-soft); stroke: var(--accent)" stroke-width="1.6" stroke-linejoin="round"/><line x1="142.0" y1="463.5" x2="311.0" y2="463.5" style="stroke: var(--rule-strong)" stroke-width="1" stroke-dasharray="3 4"/><text x="317.0" y="467.5" style="fill: var(--ink-2)" font-size="13">0 · underside of the foot</text><line x1="142.0" y1="382.7" x2="311.0" y2="382.7" style="stroke: var(--rule-strong)" stroke-width="1" stroke-dasharray="3 4"/><text x="317.0" y="386.7" style="fill: var(--ink-2)" font-size="13">4.75 · top of the foot</text><line x1="142.0" y1="362.2" x2="311.0" y2="362.2" style="stroke: var(--rule-strong)" stroke-width="1" stroke-dasharray="3 4"/><text x="317.0" y="366.2" style="fill: var(--ink-2)" font-size="13">5.96 · floor</text><line x1="142.0" y1="106.5" x2="311.0" y2="106.5" style="stroke: var(--rule-strong)" stroke-width="1" stroke-dasharray="3 4"/><text x="317.0" y="110.5" style="fill: var(--ink-2)" font-size="13">7 × height units · walls, ledges and scoops end</text><line x1="142.0" y1="24.0" x2="311.0" y2="24.0" style="stroke: var(--rule-strong)" stroke-width="1" stroke-dasharray="3 4"/><text x="317.0" y="28.0" style="fill: var(--ink-2)" font-size="13">7 × units + 4.85 · top of the lip</text><text x="206.2" y="481.5" style="fill: var(--ink-2)" font-size="13">2.95</text><text x="176.4" y="328.2" style="fill: var(--ink-2)" font-size="13">1.2 wall</text><text x="206.2" y="140.7" style="fill: var(--ink-2)" font-size="13">2.95</text><text x="8.0" y="489.5" style="fill: var(--ink-3)" font-size="10">fig-bin-section</text></svg>
@@ -436,9 +436,9 @@ figcaption {
             <tr><td class="name">Default lip, from its apex down</td><td>2.15 in at 45&#176;, 1.8 straight, 0.8 in at 45&#176;, 1.2 straight, back out at 45&#176;; apex 4.995 above the height units, rounded r 0.1</td></tr>
             <tr><td class="name">Thin lip</td><td>1.95 in at 45&#176;, 1.8 straight, back out at 45&#176;</td></tr>
             <tr><td class="name">Top without a lip</td><td>4.85 above the height units</td></tr>
-            <tr><td class="name">Magnet and screw holes</td><td>Centred (unit &#8722; 16) / 2 from the cell centre on both axes; screws r 1.5, 4.5 deep</td></tr>
-            <tr><td class="name">Baseplate pocket, from the grid line down</td><td>2.15 in at 45&#176;, 1.8 straight, 0.7 in at 45&#176;: 4.65 tall; corner radius 4 at the top</td></tr>
-            <tr><td class="name">Baseplate with magnets or screws</td><td>3 taller, with a 10 mm pad in each pocket corner, its inner corner rounded r 4.5 about the hole; screws &#216; 3.5 through the pad</td></tr>
+            <tr><td class="name">Magnet and screw holes in a bin</td><td>Centred (unit &#8722; 16) / 2 from the cell centre on both axes; each starts 0.25 below the foot, so a magnet pocket is 0.25 shallower than the magnet's height and a screw hole, r 1.5, is 4.5 deep</td></tr>
+            <tr><td class="name">Baseplate pocket, from the grid line down</td><td>2.15 in at 45&#176;, 1.8 straight, 0.7 in at 45&#176;: 4.65 tall; pockets meet in sharp corners, and the plate's four corners are rounded r 4 at the top</td></tr>
+            <tr><td class="name">Baseplate with magnets or screws</td><td>3 taller, with a 10 mm pad in each pocket corner starting 4 nearer the cell centre than a bin's hole, its inner corner rounded r 4.5 about the plate's hole; magnet pockets as deep as the magnet's height; screws &#216; 3.5 through the pad</td></tr>
             <tr><td class="name">Connector slot length along the edge</td><td>20 for a unit of 35 or more, 15 from 25, 10 from 19, 5 from 14, else 4</td></tr>
           </tbody>
         </table>
@@ -447,14 +447,11 @@ figcaption {
 
     <section class="stage-head" id="departures">
       <p class="eyebrow">Departures</p>
-      <h2>Where the web generator's geometry would misfit a part or cannot be built in SolidCraft, these parts differ from it</h2>
+      <h2>Where the web generator's geometry cannot be built in SolidCraft, or builds too slowly, these parts differ from it</h2>
       <div class="scroller">
         <table>
           <thead><tr><th>Where</th><th>Web generator</th><th>These parts</th></tr></thead>
           <tbody>
-            <tr><td class="name">Magnet pocket in a bin's foot</td><td>0.25 shallower than the magnet</td><td>As deep as the magnet</td></tr>
-            <tr><td class="name">Baseplate magnet and screw holes</td><td>13.5 from the cell centre for a 42 mm unit, half a millimetre off the bins' holes</td><td>On the bins' holes, with the pads moved with them</td></tr>
-            <tr><td class="name">Baseplate pocket corners</td><td>Sharp</td><td>Rounded as the standard's pockets are</td></tr>
             <tr><td class="name">Floor of a connector slot</td><td>0.7 up, on the crease in the pocket wall</td><td>0.65 up, below the crease and level with the clip's underside, since a cut along a crease cannot be resolved</td></tr>
             <tr><td class="name">Start of a scoop's curve</td><td>Just below the floor</td><td>0.05 above the floor, with a step that high at its toe, since a curve meeting the floor almost tangentially makes the join slow and inexact</td></tr>
             <tr><td class="name">Rounding of the lip's apex</td><td>A fillet</td><td>Four flat pieces of the same arc</td></tr>

@@ -119,8 +119,8 @@ def hole_groups(footprint: Footprint, grid: Grid, std: Standard, holes: Holes) -
             )
     magnets = set(hole_positions(footprint, std, holes.magnets, grid.unit_size))
     screws = set(hole_positions(footprint, std, holes.screws, grid.unit_size))
-    magnet = (magnet_r, holes.magnet_height)
-    screw = (std.screw_radius, std.screw_depth)
+    magnet = (magnet_r, holes.magnet_height - std.hole_lead)
+    screw = (std.screw_radius, std.screw_length - std.hole_lead)
     stacks: dict[tuple[tuple[float, float], ...], list[Point2]] = {}
     for point in sorted(magnets | screws):
         if point in magnets and point in screws:

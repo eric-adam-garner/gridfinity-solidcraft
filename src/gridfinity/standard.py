@@ -38,10 +38,13 @@ class Standard:
     lip_fillet: float = 0.1
     # Straight pieces that stand in for the apex fillet's arc
     lip_fillet_segments: int = 4
-    # Holes under the feet, centred `(pitch - hole_inset) / 2` from a cell's centre on both axes
+    # Holes under the feet, centred `(pitch - hole_inset) / 2` from a cell's centre on both axes.
+    # Each is a cylinder of the magnet's height, or of the screw length, that starts
+    # `hole_lead` below the foot, so the hole is that much shallower
     hole_inset: float = 16.0
+    hole_lead: float = 0.25
     screw_radius: float = 1.5
-    screw_depth: float = 4.5
+    screw_length: float = 4.75
     # Walls, ledges and scoops snap to this many divisions of a grid unit
     subdivisions: int = 12
     element_base: float = 5.95
@@ -78,6 +81,9 @@ class BaseplateStandard:
     pocket: Profile = ((0.0, 0.0), (2.15, 2.15), (2.15, 3.95), (2.85, 4.65))
     # Extra height under the pockets when the plate carries magnets or screws
     lift: float = 3.0
+    # A pad starts `pad_inset` nearer the cell's centre than a bin's hole, and its hole is
+    # centred where the pad's rounded inner corner is
+    pad_inset: float = 4.0
     pad_size: float = 10.0
     pad_radius: float = 4.5
     screw_diameter: float = 3.5

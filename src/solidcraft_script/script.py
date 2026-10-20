@@ -195,6 +195,8 @@ class Sketch:
         """Sides bottom, right, top, left, then corner arcs from bottom-left counter-clockwise."""
         if rect.radius <= 0:
             return self.rectangle(rect)
+        if not rect.rounded:
+            return self.segments(rect.segments())
         x0, y0, x1, y1 = rect.bounds
         self.script.add("sketch.rectangle.rounded", p0=[x0, y0], p1=[x1, y1], radius=rect.radius)
         lines = [self._next("l") for _ in range(4)]

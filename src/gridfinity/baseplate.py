@@ -1,10 +1,12 @@
 """Baseplates: a pocket for each grid cell that a bin's foot drops into, open underneath, with
-optional magnet and screw pads in the pocket corners and connector slots on the outer edges."""
+optional magnet and screw pads in the pocket corners and connector slots on the outer edges.
+
+Pockets meet in sharp corners, and only the plate's four outer corners are rounded, so the top
+of the plate is knife edges throughout."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from itertools import pairwise
 
 from gridfinity.config import BaseplateConfig, ConfigError, HoleStyle
 from gridfinity.standard import CLIP, Standard, slot_width
@@ -37,9 +39,21 @@ class PlateShape:
         grid = config.grid
         u = grid.unit_size
         lift = std.lift if config.holes.any else 0.0
+        last_x, last_y = grid.units_x - 1, grid.units_y - 1
+        cells = []
+        for index, center in enumerate(grid.cells()):
+            i, j = index % grid.units_x, index // grid.units_x
+            # Rounded only where the pocket's corner is a corner of the plate
+            square = (
+                not (i == 0 and j == 0),
+                not (i == last_x and j == 0),
+                not (i == last_x and j == last_y),
+                not (i == 0 and j == last_y),
+            )
+            cells.append(RoundedRect(center, u, u, std.corner_radius, square))
         return PlateShape(
             outline=RoundedRect((0.0, 0.0), grid.width, grid.depth, std.corner_radius),
-            cells=tuple(RoundedRect(c, u, u, std.corner_radius) for c in grid.cells()),
+            cells=tuple(cells),
             height=std.height + lift,
             lift=lift,
         )
@@ -53,16 +67,11 @@ def build_baseplate(config: BaseplateConfig, script: Script | None = None) -> Sc
     shape = PlateShape.of(config)
     shell = ShellBuilder(script, BODY, label="Plate")
 
-    connectors = _connectors(config, shape)
     breaks = pad_breaks(config) if shape.lift else ()
-    # The outer wall's top edge meets the pockets' top edges and the flats between them
-    splits = [p for line in connectors for p in (line.start, line.end)]
+    # The outer wall's top edge meets each edge pocket's top edge, from grid line to grid line
+    splits = [corner for cell in shape.cells for corner in _corners(cell)]
     splits += [p for cell in shape.cells for p in side_points(cell, breaks)]
     split_wall(shell, shape.outline, 0.0, shape.height, top_splits=splits)
-    top = shell.section(shape.height, [*shape.cells, *([c] for c in connectors)], kind="TopLoop")
-    islands = _island_points(config)
-    if islands:
-        shell.patch(top, islands, kind="Top")
 
     profile = [(inset, shape.height - depth) for inset, depth in plate.pocket]
     sweep_profile(shell, list(shape.cells), profile, kind="Pocket", breaks=breaks)
@@ -82,42 +91,9 @@ def build_baseplate(config: BaseplateConfig, script: Script | None = None) -> Sc
     return script
 
 
-def _connectors(config: BaseplateConfig, shape: PlateShape) -> list[Line]:
-    """Pieces of the outline between neighbouring pockets' straight top edges."""
-    u = config.grid.unit_size
-    straight = u / 2 - shape.outline.radius
-    x0, y0, x1, y1 = shape.outline.bounds
-    xs = sorted({c.center[0] for c in shape.cells})
-    ys = sorted({c.center[1] for c in shape.cells})
-    lines = []
-    for a, b in pairwise(xs):
-        lines += [Line((a + straight, y), (b - straight, y)) for y in (y0, y1)]
-    for a, b in pairwise(ys):
-        lines += [Line((x, a + straight), (x, b - straight)) for x in (x0, x1)]
-    return lines
-
-
-def _island_points(config: BaseplateConfig) -> list[Point2]:
-    """A point in each flat patch of the top, where pocket corners leave a gap at a grid
-    corner: inside the plate, or against its edge."""
-    grid = config.grid
-    u = grid.unit_size
-    x0, y0 = -grid.width / 2, -grid.depth / 2
-    inward = 0.3
-    points = []
-    for i in range(grid.units_x + 1):
-        for j in range(grid.units_y + 1):
-            on_x_edge = i in (0, grid.units_x)
-            on_y_edge = j in (0, grid.units_y)
-            if on_x_edge and on_y_edge:
-                continue
-            x, y = x0 + i * u, y0 + j * u
-            if on_x_edge:
-                x += inward if i == 0 else -inward
-            if on_y_edge:
-                y += inward if j == 0 else -inward
-            points.append((x, y))
-    return points
+def _corners(rect: RoundedRect) -> list[Point2]:
+    x0, y0, x1, y1 = rect.bounds
+    return [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
 
 
 def _pads(
@@ -127,7 +103,7 @@ def _pads(
     pockets and screw holes. Returns the pocket outlines and the screw holes at the bottom."""
     plate = std.baseplate
     holes = config.holes
-    offset = std.hole_offset(config.grid.unit_size)
+    offset = hole_offset(config)
     magnet_r = holes.magnet_diameter / 2
     screw_r = plate.screw_diameter / 2
     magnets = holes.magnets != HoleStyle.NONE
@@ -172,14 +148,24 @@ def _pads(
     return pockets, islands
 
 
-def pad_breaks(config: BaseplateConfig) -> tuple[float, ...]:
-    """Offsets from a pocket's centre where the pads' inner edges meet the pocket walls."""
+def hole_offset(config: BaseplateConfig) -> float:
+    """How far a plate's holes sit from a cell's centre on both axes: where a pad's rounded
+    inner corner is centred."""
     std = config.standard
-    inner = std.hole_offset(config.grid.unit_size) - std.baseplate.pad_radius
-    if inner <= 0:
+    plate = std.baseplate
+    start = std.hole_offset(config.grid.unit_size) - plate.pad_inset
+    wall = config.grid.unit_size / 2 - plate.pocket[-1][0]
+    # A pad must start clear of the centre and reach the pocket wall
+    if start <= 0 or start + plate.pad_size < wall:
         raise ConfigError(
             f"magnet and screw pads do not fit a {config.grid.unit_size:g} mm grid unit"
         )
+    return start + plate.pad_radius
+
+
+def pad_breaks(config: BaseplateConfig) -> tuple[float, ...]:
+    """Offsets from a pocket's centre where the pads' inner edges meet the pocket walls."""
+    inner = hole_offset(config) - config.standard.baseplate.pad_radius
     return (-inner, inner)
 
 
