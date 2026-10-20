@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 
 import pytest
-from oracle import baseplate_volume, bin_volume, polygon_area
+from oracle import area, baseplate_volume, bin_volume, fillet_loss, frustum, polygon_area
 
 from gridfinity.baseplate import build_baseplate
 from gridfinity.box import build_box
@@ -76,6 +76,36 @@ def test_trimmed_bin(units: tuple[int, int, int], size: tuple[float, float]) -> 
     # The bin keeps the grid's -X/-Y corner and ends at the size on the other sides
     assert body.bbox_min[:2] == pytest.approx((-21 * x + 0.31, -21 * y + 0.31), abs=1e-3)
     assert body.bbox_max[0] == pytest.approx(-21 * x + min(size[0], 42 * x - 0.31), abs=1e-3)
+
+
+@pytest.mark.parametrize("lip", [LipStyle.DEFAULT, LipStyle.NONE])
+def test_split_top_makes_two_bodies_that_add_up_to_the_bin(lip: LipStyle) -> None:
+    result = run(build_box(BoxConfig(grid=Grid(2, 1), lip=lip, split_top=True)).commands)
+    assert result.problems == []
+    bodies = {body.name: body for body in result.bodies}
+    assert set(bodies) == {"Bin", "BinTop"}
+    assert all(body.shells == 1 for body in bodies.values())
+    bin_, top = bodies["Bin"], bodies["BinTop"]
+    height = top.bbox_max[2]
+    # The cut runs 1 mm below the top of the bin
+    assert top.bbox_min[2] == pytest.approx(height - 1, abs=1e-3)
+    assert bin_.bbox_max[2] == pytest.approx(height - 1, abs=1e-3)
+    assert bin_.volume + top.volume == pytest.approx(bin_volume(2, 1, 3, lip.value), rel=EXACT)
+    width, depth, r = 2 * 42 - 0.62, 42 - 0.62, 3.75
+    if lip == LipStyle.NONE:
+        # A flat-topped ring as thick as the wall
+        ring = area(width, depth, r) - area(width, depth, r, 1.2)
+        assert top.volume == pytest.approx(ring, rel=EXACT)
+    else:
+        # The lip's first 45 degree slope from its apex down to the cut, less the apex fillet
+        apex = 21 + 4.995
+        below = apex - (height - 1)
+        slope = area(width, depth, r) * below - frustum(
+            width, depth, r, [(0.0, 0.0), (below, below)]
+        )
+        expected = slope - fillet_loss(width, depth, r, 0.1, math.pi / 4)
+        # The fillet is four flat pieces, which take a fraction of a cubic millimetre more
+        assert top.volume == pytest.approx(expected, abs=0.5)
 
 
 def test_bin_without_lip_with_magnets_and_screws() -> None:

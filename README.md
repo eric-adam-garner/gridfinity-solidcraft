@@ -72,6 +72,7 @@ uv run gridfinity box --units 2 1 --lip thin --screws full --size 70 42 --out na
 | `--outer-wall`, `--inner-wall` | mm, 0.4–3 | 1.2, 0.8 |
 | `--scoop-shape` | 0.1 (shallow) to 0.4 (nearly a quarter circle) | 0.4 |
 | `--size X Y` | trim the bin to this size in mm, from its −X/−Y corner | off |
+| `--split-top` | build the top 1 mm of the bin as a second body | off |
 | `--wall`, `--ledge`, `--scoop` | `X,Y,LENGTH[,y][,flip]`, repeatable | none |
 
 Walls, ledges and scoops run along lines of a grid divided into twelfths of a unit. `X` and

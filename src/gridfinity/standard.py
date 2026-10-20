@@ -36,6 +36,8 @@ class Standard:
     rim_top: float = 4.85
     wall_top: float = 2.72
     lip_fillet: float = 0.1
+    # How far below the top of a bin the cut runs that splits its top off as a body of its own
+    split_depth: float = 1.0
     # Straight pieces that stand in for the apex fillet's arc
     lip_fillet_segments: int = 4
     # Holes under the feet, centred `(pitch - hole_inset) / 2` from a cell's centre on both axes.

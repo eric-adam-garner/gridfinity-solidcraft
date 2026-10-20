@@ -81,6 +81,12 @@ def parser() -> argparse.ArgumentParser:
     box.add_argument(
         "--size", type=float, nargs=2, metavar=("X", "Y"), help="trim to this size, mm"
     )
+    box.add_argument(
+        "--split-top",
+        action="store_true",
+        default=None,
+        help="build the top 1 mm of the bin as a second body",
+    )
     for kind in ElementKind:
         box.add_argument(
             f"--{kind.value}",
@@ -200,6 +206,7 @@ def configure(args: argparse.Namespace) -> tuple[PartKind, PartConfig]:
         outer_wall=args.outer_wall,
         inner_wall=args.inner_wall,
         scoop_shape=args.scoop_shape,
+        split_top=args.split_top,
     )
     if args.size:
         changes.update(size_x=args.size[0], size_y=args.size[1])

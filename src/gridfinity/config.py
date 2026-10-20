@@ -154,6 +154,8 @@ class BoxConfig:
     # Trim the bin to this size (mm) on its +X/+Y sides; None keeps the whole grid
     size_x: float | None = None
     size_y: float | None = None
+    # Build the top of the bin, above a cut just below the top, as a body of its own
+    split_top: bool = False
     standard: Standard = DEFAULT
 
     def validate(self) -> None:
