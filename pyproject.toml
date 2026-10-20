@@ -1,13 +1,23 @@
 [project]
 name = "gridfinity-solidcraft"
 version = "0.1.0"
-description = "Parametric Gridfinity bins, baseplates and clips built in SolidCraft"
+description = "Parametric Gridfinity bins, baseplates, clips and drawer layouts built in SolidCraft"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["gridfinity", "solidcraft", "cad", "3d-printing", "storage"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Graphics :: 3D Modeling",
+]
 authors = [
     { name = "Eric Garner", email = "eric.adam.garner@gmail.com" }
 ]
 requires-python = ">=3.12"
 dependencies = []
+
+[project.urls]
+Repository = "https://github.com/eric-adam-garner/gridfinity-solidcraft"
 
 [project.scripts]
 gridfinity = "gridfinity.cli:main"

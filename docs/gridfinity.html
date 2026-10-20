@@ -201,6 +201,13 @@ code {
   border-top: 2px solid var(--ink);
 }
 
+/* The title block's rule already opens the first section */
+main > .stage-head:first-child {
+  margin-top: 2.25rem;
+  padding-top: 0;
+  border-top: 0;
+}
+
 .stage-head h2 {
   font-family: var(--serif);
   font-size: clamp(1.4rem, 3vw, 1.85rem);
