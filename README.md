@@ -133,6 +133,20 @@ From there the design is ordinary SolidCraft: change it, add features, export it
 uv run gridfinity box --units 2 1 --scoop 0,0,24 --live --out box.solidcraft
 ```
 
+### From Claude, over MCP
+
+`gridfinity-mcp` is an MCP server whose tools, `box`, `baseplate`, `clip` and `collection`, take
+the same settings as the command line. They build in a new tab of the open SolidCraft window, or
+write files, and reply with the part's settings as JSON. Add it to Claude Code with:
+
+```sh
+claude mcp add gridfinity -- uv run --quiet --project /path/to/gridfinity-solidcraft gridfinity-mcp
+```
+
+It reaches the app on port 7878; `--port` or `SOLIDCRAFT_PORT` picks another. Alongside
+SolidCraft's own MCP server (`solidcraft-cli mcp --connect 127.0.0.1:7878`), Claude can build a
+part with one call and go on editing it in the same window.
+
 ## How it works
 
 Each part is a list of SolidCraft commands. The same list runs headless through

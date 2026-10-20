@@ -5,9 +5,10 @@ from __future__ import annotations
 import argparse
 import sys
 import time
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from pathlib import Path
+from typing import Any
 
 from gridfinity import collection
 from gridfinity.baseplate import build_baseplate
@@ -28,8 +29,8 @@ from gridfinity.config import (
     read,
     write,
 )
-from solidcraft_script.control import DEFAULT_PORT, ControlClient
-from solidcraft_script.runner import Body, SolidCraftError, run
+from solidcraft_script.control import DEFAULT_PORT, ControlClient, ControlError
+from solidcraft_script.runner import SolidCraftError, run
 from solidcraft_script.script import Script
 
 EXPORTS = (".stl", ".step", ".stp", ".3mf", ".obj")
@@ -41,7 +42,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.kind == "collection":
         return run_collection(args)
     try:
-        kind, config = configure(args)
+        kind = PartKind(args.kind)
+        config = configure(kind, vars(args))
         if args.print_config:
             print(write(config, kind), end="")
             return 0
@@ -56,12 +58,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     try:
         if args.live:
-            build_live(script, args.port, default_name(kind, config), outputs)
-        elif outputs:
-            build_headless(script, outputs)
-    except (SolidCraftError, OSError) as error:
+            lines = build_live(script, args.port, default_name(kind, config), outputs)
+        else:
+            lines = build_headless(script, outputs) if outputs else []
+    except (SolidCraftError, ControlError, OSError) as error:
         print(f"error: {error}", file=sys.stderr)
         return 1
+    print("\n".join(lines))
     return 0
 
 
@@ -163,54 +166,56 @@ def _holes(sub: argparse.ArgumentParser, corner: bool) -> None:
     sub.add_argument("--magnet-height", type=float, help="mm (1-4)")
 
 
-def configure(args: argparse.Namespace) -> tuple[PartKind, PartConfig]:
-    kind = PartKind.CLIP if args.kind == "clip" else PartKind(args.kind)
+def configure(kind: PartKind, options: Mapping[str, Any]) -> PartConfig:
+    """A part's settings from the command line's option names: a settings file under
+    `config`, if any, with the other options given laid over it. Walls, ledges and scoops come
+    as text under their own names or as JSON objects under `elements`."""
+    given = {name: value for name, value in options.items() if value is not None}
     defaults = {
         PartKind.BOX: BoxConfig,
         PartKind.BASEPLATE: BaseplateConfig,
         PartKind.CLIP: ClipConfig,
     }
-    config = read(args.config, kind) if args.config else defaults[kind]()
-    if kind == PartKind.CLIP:
-        changes = _given(unit_size=args.unit_size, tolerance=args.tolerance)
-        return kind, replace(config, **changes)
+    config = read(Path(given["config"]), kind) if "config" in given else defaults[kind]()
+    if isinstance(config, ClipConfig):
+        changes = _given(unit_size=given.get("unit_size"), tolerance=given.get("tolerance"))
+        return replace(config, **changes)
 
     grid = config.grid
-    if args.units:
-        grid = replace(grid, units_x=args.units[0], units_y=args.units[1])
-    if args.unit_size is not None:
-        grid = replace(grid, unit_size=args.unit_size)
+    if "units" in given:
+        grid = replace(grid, units_x=given["units"][0], units_y=given["units"][1])
+    if "unit_size" in given:
+        grid = replace(grid, unit_size=given["unit_size"])
     holes = replace(
         config.holes,
         **_given(
-            magnets=args.magnets and HoleStyle(args.magnets),
-            screws=args.screws and HoleStyle(args.screws),
-            magnet_diameter=args.magnet_diameter,
-            magnet_height=args.magnet_height,
+            magnets=given.get("magnets") and HoleStyle(given["magnets"]),
+            screws=given.get("screws") and HoleStyle(given["screws"]),
+            magnet_diameter=given.get("magnet_diameter"),
+            magnet_height=given.get("magnet_height"),
         ),
     )
-    if kind == PartKind.BASEPLATE:
-        changes = _given(connectable=args.connectable)
-        if args.size:
-            changes.update(size_x=args.size[0], size_y=args.size[1])
-        return kind, replace(config, grid=grid, holes=holes, **changes)
+    sizes = {}
+    if "size" in given:
+        sizes = {"size_x": given["size"][0], "size_y": given["size"][1]}
+    if isinstance(config, BaseplateConfig):
+        changes = _given(connectable=given.get("connectable"))
+        return replace(config, grid=grid, holes=holes, **changes, **sizes)
 
     elements = list(config.elements)
     for element_kind in ElementKind:
-        elements += [
-            parse_element(element_kind, text) for text in getattr(args, element_kind.value)
-        ]
+        texts = given.get(element_kind.value, [])
+        elements += [parse_element(element_kind, text) for text in texts]
+    elements += [Element.from_json(item) for item in given.get("elements", [])]
     changes = _given(
-        units_z=args.height,
-        lip=args.lip and LipStyle(args.lip),
-        outer_wall=args.outer_wall,
-        inner_wall=args.inner_wall,
-        scoop_shape=args.scoop_shape,
-        split_top=args.split_top,
+        units_z=given.get("height"),
+        lip=given.get("lip") and LipStyle(given["lip"]),
+        outer_wall=given.get("outer_wall"),
+        inner_wall=given.get("inner_wall"),
+        scoop_shape=given.get("scoop_shape"),
+        split_top=given.get("split_top"),
     )
-    if args.size:
-        changes.update(size_x=args.size[0], size_y=args.size[1])
-    return kind, replace(config, grid=grid, holes=holes, elements=tuple(elements), **changes)
+    return replace(config, grid=grid, holes=holes, elements=tuple(elements), **changes, **sizes)
 
 
 def _given(**values: object) -> dict[str, object]:
@@ -251,7 +256,8 @@ def default_name(kind: PartKind, config: PartConfig) -> str:
     return f"baseplate-{g.units_x}-{g.units_y}{trimmed}"
 
 
-def build_headless(script: Script, outputs: Sequence[Path]) -> None:
+def build_headless(script: Script, outputs: Sequence[Path]) -> list[str]:
+    """Build headless and write `outputs`; returns a report, one line per fact."""
     exports = [p for p in outputs if p.suffix.lower() in EXPORTS]
     designs = [p for p in outputs if p.suffix.lower() in DESIGNS]
     unknown = [p for p in outputs if p not in exports and p not in designs]
@@ -263,10 +269,12 @@ def build_headless(script: Script, outputs: Sequence[Path]) -> None:
     result = run(script.commands, outputs=exports, save=designs[0] if designs else None)
     for extra in designs[1:]:
         run(script.commands, save=extra)
-    _report(result.bodies, result.problems, time.monotonic() - started, outputs)
+    bodies = [(b.name, b.volume) for b in result.bodies]
+    return _report("built", bodies, result.problems, time.monotonic() - started, outputs)
 
 
-def build_live(script: Script, port: int, name: str, outputs: Sequence[Path]) -> None:
+def build_live(script: Script, port: int, name: str, outputs: Sequence[Path]) -> list[str]:
+    """Build in a new tab of the running app and write `outputs`; returns a report."""
     started = time.monotonic()
     with ControlClient(port) as app:
         # A new tab leaves whatever is open in the app untouched
@@ -286,65 +294,76 @@ def build_live(script: Script, port: int, name: str, outputs: Sequence[Path]) ->
         for f in inspection["timeline"]
         if f.get("error") or f.get("warning")
     ]
-    print(
-        f"built in the app in {time.monotonic() - started:.1f} s: "
-        + ", ".join(f"{n} {v:.1f} mm3" for n, v in bodies)
-    )
-    for problem in problems:
-        print(f"warning: {problem}")
-    for path in outputs:
-        print(f"wrote {path}")
+    seconds = time.monotonic() - started
+    return _report(f"built in the app, design {name!r},", bodies, problems, seconds, outputs)
 
 
 def _report(
-    bodies: Sequence[Body], problems: Sequence[str], seconds: float, outputs: Sequence[Path]
-) -> None:
-    summary = ", ".join(f"{b.name} {b.volume:.1f} mm3" for b in bodies)
-    print(f"built in {seconds:.1f} s: {summary}")
-    for problem in problems:
-        print(f"warning: {problem}")
-    for path in outputs:
-        print(f"wrote {path}")
+    what: str,
+    bodies: Sequence[tuple[str, float]],
+    problems: Sequence[str],
+    seconds: float,
+    outputs: Sequence[Path],
+) -> list[str]:
+    summary = ", ".join(f"{name} {volume:.1f} mm3" for name, volume in bodies)
+    lines = [f"{what} in {seconds:.1f} s: {summary}"]
+    lines += [f"warning: {problem}" for problem in problems]
+    lines += [f"wrote {path}" for path in outputs]
+    return lines
 
 
 def run_collection(args: argparse.Namespace) -> int:
-    """Build every part of a collection into its folder, then assemble the collection."""
     try:
         config = collection.read(args.config)
-        config.validate()
+        folder = args.folder or args.config.with_suffix("")
+        out = args.out or folder / f"{args.config.stem}.solidcraft"
+        lines = collect(config, args.config.stem, folder, args.export, out, args.live, args.port)
     except ConfigError as error:
         print(f"error: {error}", file=sys.stderr)
         return 2
+    except (SolidCraftError, ControlError, OSError) as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 1
+    print("\n".join(lines))
+    return 0
+
+
+def collect(
+    config: collection.CollectionConfig,
+    name: str,
+    folder: Path,
+    exports: Sequence[str],
+    out: Path,
+    live: bool,
+    port: int = DEFAULT_PORT,
+) -> list[str]:
+    """Build every part of a collection into `folder`, exporting each in `exports` formats,
+    then assemble the collection as the design `out`, in the running app when `live`.
+    Returns a report."""
+    config.validate()
     placements, problems = collection.place(config)
-    for problem in problems:
-        print(f"warning: {problem}")
-    folder = args.folder or args.config.with_suffix("")
+    lines = [f"warning: {problem}" for problem in problems]
     folder.mkdir(parents=True, exist_ok=True)
     designs: dict[str, Path] = {}
     built: dict[str, Path] = {}
-    try:
-        for item in config.items:
-            # Items with the same settings share one design
-            key = write(item.part, item.kind)
-            if key not in built:
-                path = folder / f"{item.name}.solidcraft"
-                exports = [folder / f"{item.name}.{ext}" for ext in args.export]
-                print(f"{item.name}:")
-                build_headless(build(item.kind, item.part), [path, *exports])
-                built[key] = path.resolve()
-            designs[item.name] = built[key]
-        script = collection.assemble(placements, designs)
-        out = args.out or folder / f"{args.config.stem}.solidcraft"
-        if args.live:
-            with ControlClient(args.port) as app:
-                app.request("ui.documents", {"action": "new"})
-                app.execute("file.new", {"name": args.config.stem})
-                app.batch(script.commands)
-                app.execute("file.save", {"path": str(out.resolve())})
-        else:
-            run(script.commands, save=out)
-    except (SolidCraftError, OSError) as error:
-        print(f"error: {error}", file=sys.stderr)
-        return 1
-    print(f"wrote {out}")
-    return 0
+    for item in config.items:
+        # Items with the same settings share one design
+        key = write(item.part, item.kind)
+        if key not in built:
+            path = folder / f"{item.name}.solidcraft"
+            files = [folder / f"{item.name}.{ext}" for ext in exports]
+            lines.append(f"{item.name}:")
+            lines += build_headless(build(item.kind, item.part), [path, *files])
+            built[key] = path.resolve()
+        designs[item.name] = built[key]
+    script = collection.assemble(placements, designs)
+    if live:
+        with ControlClient(port) as app:
+            app.request("ui.documents", {"action": "new"})
+            app.execute("file.new", {"name": name})
+            app.batch(script.commands)
+            app.execute("file.save", {"path": str(out.resolve())})
+    else:
+        run(script.commands, save=out)
+    lines.append(f"wrote {out}")
+    return lines

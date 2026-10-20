@@ -517,6 +517,7 @@ figcaption {
 <span class="c"># build in the running SolidCraft app instead, in a new tab, and save it</span>
 <span class="k">uv run gridfinity box</span> --units 2 1 --live --out box-2-1-3.solidcraft</pre>
       <p>A file's extension picks its format: STL, STEP, 3MF and OBJ are exports, a <code>.solidcraft</code> name saves the design and <code>.json</code> saves it as plain JSON. With neither an output nor a script named, a part is written as STL under the web generator's name for it. <code>--script</code> also writes the command script, which <code>solidcraft-cli run</code> and the MCP <code>batch</code> tool take unchanged. Building in the app opens a new tab first and leaves whatever is open untouched; the app answers only between frames, and has been seen to stall while its window was in the background.</p>
+      <p>The same parts are tools of an MCP server, <code>gridfinity-mcp</code>: <code>box</code>, <code>baseplate</code>, <code>clip</code> and <code>collection</code>, each taking the command line's settings, building in a new tab of the open window unless told to write files only, and answering with the part's settings as JSON. A setting the tool does not know, or one out of range, comes back as the tool's error and builds nothing.</p>
     </section>
 
     <section class="stage-head" id="extending">

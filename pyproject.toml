@@ -21,6 +21,7 @@ Repository = "https://github.com/eric-adam-garner/gridfinity-solidcraft"
 
 [project.scripts]
 gridfinity = "gridfinity.cli:main"
+gridfinity-mcp = "gridfinity.mcp:main"
 
 [build-system]
 requires = ["uv_build>=0.13.1,<0.14.0"]
