@@ -363,7 +363,7 @@ figcaption {
           </tbody>
         </table>
       </div>
-      <p>The web generator's fifth kind, a cutout fitted to an imported STL model, is not built: see <a href="#out-of-scope">what is left out</a> and <a href="#questions">the open questions</a>.</p>
+      <p>The web generator's fifth kind, a cutout fitted to an imported STL model, is <a href="#out-of-scope">left out</a>.</p>
     </section>
 
     <section class="stage-head" id="settings">
@@ -539,27 +539,25 @@ figcaption {
       <p class="eyebrow">Left out</p>
       <h2>Cutouts and the web generator's account features are not built</h2>
       <ul>
-        <li>Cutouts. SolidCraft runs no boolean on an imported mesh, and an STL subtracted exactly needs a mesh boolean outside it; the first open question decides it.</li>
+        <li>Cutouts, which fit a pocket in a bin with a raised floor to an imported STL model.</li>
         <li>GLB export, the build-plate preview, measurements in inches, and saved models, accounts and the model library.</li>
       </ul>
     </section>
 
     <section class="stage-head" id="questions">
       <p class="eyebrow">Re-plan triggers</p>
-      <h2>Three questions change what gets built: cutouts, the feet of trimmed bins and the gap between bins</h2>
-      <p>Settled: the web generator's geometry is followed everywhere the departures table does not say otherwise.</p>
+      <h2>One question changes what gets built: the gap between bins</h2>
+      <p>Settled: the web generator's geometry is followed everywhere the departures table does not say otherwise; a trimmed bin stands on narrower feet of the full profile; cutouts are left out.</p>
     </section>
 
     <article class="step" id="open-questions">
       <p class="eyebrow">Open questions</p>
-      <h3>Each question names what its answer changes about the parts</h3>
+      <h3>The question names what its answer changes about the parts</h3>
       <div class="scroller">
         <table>
           <thead><tr><th>Question</th><th>Decided by</th><th>Unblocked by</th><th>Status</th></tr></thead>
           <tbody>
-            <tr><td>Are cutouts subtracted from the bin with a mesh-boolean library outside SolidCraft, as the web generator does in the browser? Yes adds the cutout part, whose output is a mesh only, with no STEP; no leaves it out or replaces it with a pocket swept from the model's outline.</td><td>Eric Garner</td><td>Agreeing to the new dependency, <code>manifold3d</code></td><td><span class="pill review">Open</span></td></tr>
-            <tr><td>Do trimmed bins keep narrower feet of the full profile in the cut column or row, rather than the web generator's whole feet cut flat? No needs a different construction for those feet, since a flat-cut foot cannot be sewn into the shell.</td><td>Eric Garner</td><td>A trimmed bin tried in a baseplate trimmed to the same size</td><td><span class="pill review">Open</span></td></tr>
-            <tr><td>Do bins keep the web generator's 0.62 mm gap or take the standard's 0.5 mm? The answer moves every bin's outline and feet.</td><td>Eric Garner</td><td>A printed bin tried in a baseplate made to the standard</td><td><span class="pill review">Open</span></td></tr>
+            <tr><td>Do bins keep the web generator's 0.62 mm gap or take the standard's 0.5 mm? The web generator gives no reason for its value. Its bins are 0.06 mm smaller a side, feet included, so they sit with that much more play in a baseplate made to the standard and drop that much lower onto its slopes.</td><td>Eric Garner</td><td>A printed bin tried in a baseplate made to the standard</td><td><span class="pill review">Open</span></td></tr>
           </tbody>
         </table>
       </div>
